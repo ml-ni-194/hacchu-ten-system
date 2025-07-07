@@ -323,10 +323,41 @@
         .product-code-column {
             width: 100px;
             text-align: center;
+            cursor: pointer;
+            position: relative;
         }
 
         .category-column {
             width: 120px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .sortable-header {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        .sortable-header:hover {
+            background-color: #e8f4f8;
+        }
+
+        .sort-indicator {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sort-asc::after {
+            content: "↑";
+        }
+
+        .sort-desc::after {
+            content: "↓";
         }
 
         .stock-column {
@@ -701,7 +732,7 @@
                 <div class="filter-controls">
                     <input type="text" class="search-box" placeholder="商品名で検索..." onkeyup="filterTable()">
                     <select onchange="filterByCategory()" id="categoryFilter">
-                        <option value="">全カテゴリ</option>
+                        <option value="">全店舗</option>
                     </select>
                 </div>
             </div>
@@ -725,9 +756,15 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
-                            <th class="product-code-column">商品コード</th>
+                            <th class="product-code-column sortable-header" onclick="sortTable('productCode')">
+                                商品コード
+                                <span class="sort-indicator" id="sort-productCode"></span>
+                            </th>
                             <th>商品名</th>
-                            <th class="category-column">カテゴリ</th>
+                            <th class="category-column sortable-header" onclick="sortTable('store')">
+                                店舗
+                                <span class="sort-indicator" id="sort-store"></span>
+                            </th>
                             <th class="stock-column">現在在庫</th>
                             <th class="reorder-point-column">発注点</th>
                             <th class="shortage-column">不足数</th>
@@ -764,9 +801,15 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
-                            <th class="product-code-column">商品コード</th>
+                            <th class="product-code-column sortable-header" onclick="sortTable('productCode')">
+                                商品コード
+                                <span class="sort-indicator" id="sort-productCode"></span>
+                            </th>
                             <th>商品名</th>
-                            <th class="category-column">カテゴリ</th>
+                            <th class="category-column sortable-header" onclick="sortTable('store')">
+                                店舗
+                                <span class="sort-indicator" id="sort-store"></span>
+                            </th>
                             <th class="stock-column">現在在庫</th>
                             <th class="quantity-column">発注数</th>
                             <th class="order-date-column">発注日</th>
@@ -803,9 +846,15 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
-                            <th class="product-code-column">商品コード</th>
+                            <th class="product-code-column sortable-header" onclick="sortTable('productCode')">
+                                商品コード
+                                <span class="sort-indicator" id="sort-productCode"></span>
+                            </th>
                             <th>商品名</th>
-                            <th class="category-column">カテゴリ</th>
+                            <th class="category-column sortable-header" onclick="sortTable('store')">
+                                店舗
+                                <span class="sort-indicator" id="sort-store"></span>
+                            </th>
                             <th class="stock-column">現在在庫</th>
                             <th class="reorder-point-column">発注点</th>
                             <th class="order-date-column">停止日</th>
@@ -826,9 +875,15 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="product-code-column">商品コード</th>
+                            <th class="product-code-column sortable-header" onclick="sortTable('productCode')">
+                                商品コード
+                                <span class="sort-indicator" id="sort-productCode"></span>
+                            </th>
                             <th>商品名</th>
-                            <th class="category-column">カテゴリ</th>
+                            <th class="category-column sortable-header" onclick="sortTable('store')">
+                                店舗
+                                <span class="sort-indicator" id="sort-store"></span>
+                            </th>
                             <th class="stock-column">現在在庫</th>
                             <th class="reorder-point-column">発注点</th>
                             <th class="daily-average-column">日平均販売</th>
@@ -868,6 +923,8 @@
             safetyStock: 3,
             urgentThreshold: 50
         };
+        let currentSortColumn = '';
+        let currentSortDirection = 'asc';
 
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
@@ -1058,7 +1115,7 @@
                             data.push({
                                 productId: productCode,
                                 productName: productName,
-                                category: department || '未分類',
+                                category: department || '未設定',
                                 currentStock: currentStock,
                                 supplier: '未設定',
                                 unitCost: 0
@@ -1182,7 +1239,7 @@
                 return {
                     id: productId,
                     name: item.productName,
-                    category: item.category || '未分類',
+                    category: item.category || '未設定',
                     currentStock: currentStock,
                     totalSales: totalSales,
                     dailyAverage: Math.round(dailyAverage * 100) / 100,
@@ -1401,8 +1458,122 @@
             const select = document.getElementById('categoryFilter');
             const categories = [...new Set(inventoryData.map(item => item.category))];
             
-            select.innerHTML = '<option value="">全カテゴリ</option>' + 
+            select.innerHTML = '<option value="">全店舗</option>' + 
                 categories.map(category => `<option value="${category}">${category}</option>`).join('');
+        }
+
+        // ソート機能
+        function sortTable(column) {
+            // 現在のソート状態を更新
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            
+            // ソートインジケーターを更新
+            updateSortIndicators();
+            
+            // 現在のタブに応じてソート
+            sortCurrentTabData();
+            
+            // テーブルを更新
+            updateTables();
+        }
+
+        function updateSortIndicators() {
+            // 全てのソートインジケーターをクリア
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.className = 'sort-indicator';
+            });
+            
+            // 現在のソート列のインジケーターを更新
+            if (currentSortColumn) {
+                const indicators = document.querySelectorAll(`#sort-${currentSortColumn}`);
+                indicators.forEach(indicator => {
+                    indicator.className = `sort-indicator sort-${currentSortDirection}`;
+                });
+            }
+        }
+
+        function sortCurrentTabData() {
+            const sortFunction = getSortFunction(currentSortColumn, currentSortDirection);
+            
+            // 各データ配列をソート
+            inventoryData.sort(sortFunction);
+            orderedItems.sort(sortFunction);
+            onHoldItems.sort(sortFunction);
+        }
+
+        // ソート機能
+        function sortTable(column) {
+            // 現在のソート状態を更新
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            
+            // ソートインジケーターを更新
+            updateSortIndicators();
+            
+            // 現在のタブに応じてソート
+            sortCurrentTabData();
+            
+            // テーブルを更新
+            updateTables();
+        }
+
+        function updateSortIndicators() {
+            // 全てのソートインジケーターをクリア
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.className = 'sort-indicator';
+            });
+            
+            // 現在のソート列のインジケーターを更新
+            if (currentSortColumn) {
+                const indicators = document.querySelectorAll(`#sort-${currentSortColumn}`);
+                indicators.forEach(indicator => {
+                    indicator.className = `sort-indicator sort-${currentSortDirection}`;
+                });
+            }
+        }
+
+        function sortCurrentTabData() {
+            const sortFunction = getSortFunction(currentSortColumn, currentSortDirection);
+            
+            // 各データ配列をソート
+            inventoryData.sort(sortFunction);
+            orderedItems.sort(sortFunction);
+            onHoldItems.sort(sortFunction);
+        }
+
+        function getSortFunction(column, direction) {
+            return function(a, b) {
+                let valueA, valueB;
+                
+                switch (column) {
+                    case 'productCode':
+                        valueA = a.id || '';
+                        valueB = b.id || '';
+                        break;
+                    case 'store':
+                        valueA = a.category || '';
+                        valueB = b.category || '';
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                // 文字列比較
+                if (direction === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            };
         }
 
         function showTab(tabName) {
@@ -1416,6 +1587,9 @@
             event.target.classList.add('active');
             
             currentTab = tabName;
+            
+            // ソートインジケーターを更新（タブ切り替え時）
+            updateSortIndicators();
             
             const titles = {
                 'reorder': '発注が必要な商品',
@@ -1435,8 +1609,8 @@
             rows.forEach(row => {
                 const productName = row.querySelector('.product-name');
                 const categoryCell = currentTab === 'all' ? 
-                    row.cells[2] : // 全商品タブではカテゴリは3番目
-                    row.cells[3];   // 他のタブではカテゴリは4番目
+                    row.cells[2] : // 全商品タブでは店舗は3番目
+                    row.cells[3];   // 他のタブでは店舗は4番目
                 
                 if (productName && categoryCell) {
                     const nameMatch = productName.textContent.toLowerCase().includes(searchTerm);
@@ -1527,10 +1701,10 @@
         }
 
         function downloadSampleCSV() {
-            const sampleData = `商品コード,商品名,カテゴリ,在庫数
-P001,ノートPC Acer Aspire,PC・周辺機器,3
-P002,プリンタ用紙 A4 500枚,オフィス用品,5
-P003,マウス 無線,PC・周辺機器,10`;
+            const sampleData = `商品コード,商品名,店舗,在庫数
+P001,ノートPC Acer Aspire,東京店,3
+P002,プリンタ用紙 A4 500枚,大阪店,5
+P003,マウス 無線,名古屋店,10`;
             
             const blob = new Blob([sampleData], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
