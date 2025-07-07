@@ -245,6 +245,11 @@
             color: #0056b3;
         }
 
+        .status-on-hold {
+            background: #ffeaa7;
+            color: #b8860b;
+        }
+
         /* 数値カラー */
         .number-positive {
             color: #27ae60;
@@ -307,6 +312,28 @@
             transform: translateY(0);
         }
 
+        /* 一括コピーボタン */
+        .bulk-copy-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+
+        .bulk-copy-btn:hover {
+            background: #8e44ad;
+        }
+
+        .bulk-copy-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
         /* レスポンシブ */
         @media (max-width: 768px) {
             .settings-grid {
@@ -357,6 +384,7 @@
         .tab-buttons {
             display: flex;
             border-bottom: 2px solid #eee;
+            align-items: center;
         }
 
         .tab-button {
@@ -373,6 +401,22 @@
         .tab-button.active {
             color: #3498db;
             border-bottom-color: #3498db;
+        }
+
+        .tab-copy-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+            transition: background 0.3s;
+        }
+
+        .tab-copy-btn:hover {
+            background: #8e44ad;
         }
 
         .tab-content {
@@ -728,6 +772,43 @@
                 <span id="lastUpdate">最終更新: --:--</span>
                 <button class="btn" onclick="refreshData()">🔄 更新</button>
             </div>
+
+            <!-- 発注停止中タブ -->
+            <div id="onhold-tab" class="tab-content">
+                <div class="table-controls">
+                    <div class="selection-controls">
+                        <label>
+                            <input type="checkbox" id="selectAllOnHold" onchange="toggleSelectAllOnHold()">
+                            全選択
+                        </label>
+                        <span class="selected-count" id="onHoldSelectedCount">0件選択</span>
+                    </div>
+                    <div class="action-controls">
+                        <button class="btn btn-success btn-sm" onclick="resumeSelectedOrders()" id="resumeOrdersBtn" disabled>選択商品を発注再開</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteSelectedOnHold()" id="deleteOnHoldBtn" disabled>選択商品を削除</button>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-column">選択</th>
+                            <th>商品名</th>
+                            <th>カテゴリ</th>
+                            <th>現在在庫</th>
+                            <th>発注点</th>
+                            <th>停止日</th>
+                            <th>ステータス</th>
+                            <th class="action-column">個別操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="onHoldTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">発注停止中の商品はありません</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </header>
 
@@ -777,15 +858,15 @@
         <div class="summary-grid">
             <div class="summary-card alert">
                 <div class="number" id="urgentCount">0</div>
-                <div class="label">緊急発注必要</div>
-            </div>
-            <div class="summary-card warning">
-                <div class="number" id="warningCount">0</div>
-                <div class="label">発注推奨</div>
+                <div class="label">発注必要</div>
             </div>
             <div class="summary-card info">
                 <div class="number" id="orderedCount">0</div>
                 <div class="label">発注中</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="number" id="onHoldCount">0</div>
+                <div class="label">発注停止中</div>
             </div>
             <div class="summary-card success">
                 <div class="number" id="normalCount">0</div>
@@ -799,7 +880,9 @@
                 <div class="tab-buttons">
                     <button class="tab-button active" onclick="showTab('reorder')">🚨 発注必要</button>
                     <button class="tab-button" onclick="showTab('ordered')">📋 発注中</button>
+                    <button class="tab-button" onclick="showTab('onhold')">⏸️ 発注停止中</button>
                     <button class="tab-button" onclick="showTab('all')">📊 全商品</button>
+                    <button class="tab-copy-btn" onclick="copyAllCurrentTabCodes()" id="tabCopyBtn">全品番コピー</button>
                 </div>
             </div>
 
@@ -1193,11 +1276,13 @@
         // グローバル変数
         let inventoryData = [];
         let orderedItems = [];
+        let onHoldItems = [];
         let currentTab = 'reorder';
         let uploadedInventoryData = null;
         let uploadedSalesData = null;
         let selectedReorderItems = new Set();
         let selectedOrderedItems = new Set();
+        let selectedOnHoldItems = new Set();
         let itemsToOrder = [];
         let GOOGLE_SCRIPT_URL = ''; // Google Apps ScriptのWebアプリURLを設定
         let currentSettings = {
@@ -1318,6 +1403,21 @@
                     expectedDelivery: '2025-07-08',
                     status: 'ordered',
                     supplier: 'テックサプライ'
+                }
+            ];
+
+            // 発注停止中データ
+            onHoldItems = [
+                {
+                    id: 'P007',
+                    name: 'テスト商品（発注停止中）',
+                    category: 'PC・周辺機器',
+                    currentStock: 2,
+                    reorderPoint: 15,
+                    onHoldDate: '2025-07-05',
+                    status: 'on-hold',
+                    supplier: 'テストサプライ',
+                    reason: '仕入先変更のため一時停止'
                 }
             ];
 
@@ -1796,14 +1896,14 @@
 
         // サマリーカード更新
         function updateSummaryCards() {
-            const urgentCount = inventoryData.filter(item => item.status === 'danger').length;
-            const warningCount = inventoryData.filter(item => item.status === 'warning').length;
+            const urgentCount = inventoryData.filter(item => item.needsReorder).length;
             const orderedCount = orderedItems.length;
+            const onHoldCount = onHoldItems.length;
             const normalCount = inventoryData.filter(item => item.status === 'normal').length;
 
             document.getElementById('urgentCount').textContent = urgentCount;
-            document.getElementById('warningCount').textContent = warningCount;
             document.getElementById('orderedCount').textContent = orderedCount;
+            document.getElementById('onHoldCount').textContent = onHoldCount;
             document.getElementById('normalCount').textContent = normalCount;
         }
 
@@ -1811,6 +1911,7 @@
         function updateTables() {
             updateReorderTable();
             updateOrderedTable();
+            updateOnHoldTable();
             updateAllTable();
         }
 
@@ -1847,13 +1948,48 @@
                     <td><span class="status-badge status-${item.status}">${getPriorityText(item.status)}</span></td>
                     <td class="action-column">
                         <button class="btn btn-success btn-sm" onclick="markSingleAsOrdered('${item.id}')">発注</button>
+                        <button class="btn btn-warning btn-sm" onclick="markAsOnHold('${item.id}')">停止</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        // 発注中テーブル更新
-        function updateOrderedTable() {
+        // 発注停止中テーブル更新
+        function updateOnHoldTable() {
+            const tbody = document.getElementById('onHoldTableBody');
+            
+            // 選択状態をリセット
+            selectedOnHoldItems.clear();
+            updateOnHoldSelection();
+            
+            if (onHoldItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">発注停止中の商品はありません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = onHoldItems.map(item => `
+                <tr>
+                    <td class="checkbox-column">
+                        <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleOnHoldItemSelection('${item.id}')">
+                    </td>
+                    <td>
+                        <div class="product-name-container">
+                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
+                            <span class="product-name">${item.name}</span>
+                        </div>
+                    </td>
+                    <td>${item.category}</td>
+                    <td>${item.currentStock}</td>
+                    <td>${item.reorderPoint || 0}</td>
+                    <td>${item.onHoldDate}</td>
+                    <td><span class="status-badge status-on-hold">発注停止中</span></td>
+                    <td class="action-column">
+                        <button class="btn btn-sm btn-success" onclick="resumeOrder('${item.id}')">再開</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteOnHold('${item.id}')">削除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
             const tbody = document.getElementById('orderedTableBody');
             
             // 選択状態をリセット
@@ -2360,7 +2496,10 @@
         // クリップボードにコピー
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(function() {
-                showCopyNotification();
+                // 単発コピーの場合のみ通知
+                if (!text.includes('\n')) {
+                    showCopyNotification();
+                }
             }).catch(function() {
                 // フォールバック方法
                 const textArea = document.createElement('textarea');
@@ -2369,17 +2508,100 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                showCopyNotification();
+                // 単発コピーの場合のみ通知
+                if (!text.includes('\n')) {
+                    showCopyNotification();
+                }
             });
         }
 
         // コピー通知を表示
-        function showCopyNotification() {
+        function showCopyNotification(message = 'コピーしました！') {
             const notification = document.getElementById('copyNotification');
+            notification.textContent = message;
             notification.classList.add('show');
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 2000);
+        }
+
+        // 発注必要商品の全品番をコピー
+        function copyAllReorderCodes() {
+            const reorderItems = inventoryData.filter(item => item.needsReorder);
+            if (reorderItems.length === 0) {
+                alert('発注が必要な商品がありません。');
+                return;
+            }
+            
+            const codes = reorderItems.map(item => item.id);
+            const codesText = codes.join('\n'); // 改行区切りで結合
+            
+            copyToClipboard(codesText);
+            showCopyNotification(`${codes.length}件の品番をコピーしました！`);
+        }
+
+        // 発注中商品の全品番をコピー
+        function copyAllOrderedCodes() {
+            if (orderedItems.length === 0) {
+                alert('発注中の商品がありません。');
+                return;
+            }
+            
+            const codes = orderedItems.map(item => item.id);
+            const codesText = codes.join('\n'); // 改行区切りで結合
+            
+            copyToClipboard(codesText);
+            showCopyNotification(`${codes.length}件の品番をコピーしました！`);
+        }
+
+        // 現在のタブの全品番をコピー
+        function copyAllCurrentTabCodes() {
+            let items = [];
+            let tabName = '';
+            
+            if (currentTab === 'reorder') {
+                items = inventoryData.filter(item => item.needsReorder);
+                tabName = '発注必要';
+            } else if (currentTab === 'ordered') {
+                items = orderedItems;
+                tabName = '発注中';
+            } else if (currentTab === 'all') {
+                items = inventoryData;
+                tabName = '全商品';
+            }
+            
+            if (items.length === 0) {
+                alert('表示する商品がありません。');
+                return;
+            }
+            
+            const codes = items.map(item => item.id);
+            const codesText = codes.join('\n'); // 改行区切りで結合
+            
+            copyToClipboard(codesText);
+            showCopyNotification(`${tabName}の品番 ${codes.length}件をコピーしました！`);
+        }
+
+        // 選択商品の品番をコピー
+        function copySelectedCodes() {
+            let selectedItems = [];
+            
+            if (currentTab === 'reorder') {
+                selectedItems = inventoryData.filter(item => selectedReorderItems.has(item.id));
+            } else if (currentTab === 'ordered') {
+                selectedItems = orderedItems.filter(item => selectedOrderedItems.has(item.id));
+            }
+            
+            if (selectedItems.length === 0) {
+                alert('商品を選択してください。');
+                return;
+            }
+            
+            const codes = selectedItems.map(item => item.id);
+            const codesText = codes.join('\n'); // 改行区切りで結合
+            
+            copyToClipboard(codesText);
+            showCopyNotification(`選択した品番 ${codes.length}件をコピーしました！`);
         }
 
         // カテゴリフィルター更新
