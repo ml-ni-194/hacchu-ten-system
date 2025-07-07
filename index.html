@@ -660,6 +660,7 @@
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-success" onclick="calculateReorderPoints()" id="calculateBtn">📊 発注点を計算</button>
                 <button class="btn" onclick="downloadSampleCSV()">📥 サンプルCSVダウンロード</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ 全データ削除</button>
             </div>
         </div>
 
@@ -870,6 +871,7 @@
 
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
+            loadFromLocalStorage();
             updateLastUpdateTime();
             updateSummaryCards();
             updateCategoryFilter();
@@ -927,6 +929,112 @@
                     }
                 };
                 reader.readAsText(file, 'shift_jis');
+            }
+        }
+
+        // データの保存・復元機能
+        function saveToLocalStorage() {
+            const dataToSave = {
+                inventoryData: inventoryData,
+                orderedItems: orderedItems,
+                onHoldItems: onHoldItems,
+                currentSettings: currentSettings,
+                lastCalculation: document.getElementById('lastCalculation').textContent
+            };
+            
+            try {
+                localStorage.setItem('inventoryManagementData', JSON.stringify(dataToSave));
+                console.log('データを保存しました');
+            } catch (error) {
+                console.error('データの保存に失敗しました:', error);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('inventoryManagementData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    inventoryData = data.inventoryData || [];
+                    orderedItems = data.orderedItems || [];
+                    onHoldItems = data.onHoldItems || [];
+                    currentSettings = { ...currentSettings, ...data.currentSettings };
+                    
+                    if (data.lastCalculation) {
+                        document.getElementById('lastCalculation').textContent = data.lastCalculation;
+                    }
+                    
+                    updateSummaryCards();
+                    updateTables();
+                    updateCategoryFilter();
+                    
+                    console.log('データを復元しました');
+                    showNotification('前回のデータを復元しました');
+                } else {
+                    console.log('保存されたデータがありません');
+                }
+            } catch (error) {
+                console.error('データの復元に失敗しました:', error);
+                showNotification('データの復元に失敗しました', 'error');
+            }
+        }
+
+        // データの保存・復元機能
+        function saveToLocalStorage() {
+            const dataToSave = {
+                inventoryData: inventoryData,
+                orderedItems: orderedItems,
+                onHoldItems: onHoldItems,
+                currentSettings: currentSettings,
+                lastCalculation: document.getElementById('lastCalculation').textContent
+            };
+            
+            try {
+                localStorage.setItem('inventoryManagementData', JSON.stringify(dataToSave));
+                console.log('データを保存しました');
+            } catch (error) {
+                console.error('データの保存に失敗しました:', error);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('inventoryManagementData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    inventoryData = data.inventoryData || [];
+                    orderedItems = data.orderedItems || [];
+                    onHoldItems = data.onHoldItems || [];
+                    currentSettings = { ...currentSettings, ...data.currentSettings };
+                    
+                    if (data.lastCalculation) {
+                        document.getElementById('lastCalculation').textContent = data.lastCalculation;
+                    }
+                    
+                    updateSummaryCards();
+                    updateTables();
+                    updateCategoryFilter();
+                    
+                    console.log('データを復元しました');
+                    showNotification('前回のデータを復元しました');
+                } else {
+                    console.log('保存されたデータがありません');
+                }
+            } catch (error) {
+                console.error('データの復元に失敗しました:', error);
+                showNotification('データの復元に失敗しました', 'error');
+            }
+        }
+
+        function clearLocalStorage() {
+            try {
+                localStorage.removeItem('inventoryManagementData');
+                console.log('保存されたデータを削除しました');
+                showNotification('保存されたデータを削除しました');
+            } catch (error) {
+                console.error('データの削除に失敗しました:', error);
             }
         }
 
@@ -1094,6 +1202,9 @@
             updateCategoryFilter();
             updateLastUpdateTime();
             document.getElementById('lastCalculation').textContent = `最終計算: ${new Date().toLocaleString('ja-JP')}`;
+            
+            // データを保存
+            saveToLocalStorage();
             
             const reorderCount = calculatedData.filter(item => item.needsReorder).length;
             const dangerCount = calculatedData.filter(item => item.status === 'danger').length;
@@ -1429,6 +1540,43 @@ P003,マウス 無線,PC・周辺機器,10`;
             URL.revokeObjectURL(link.href);
         }
 
+        function clearAllData() {
+            if (confirm('全てのデータを削除しますか？この操作は取り消せません。')) {
+                // データを初期化
+                inventoryData = [];
+                orderedItems = [];
+                onHoldItems = [];
+                selectedReorderItems.clear();
+                selectedOrderedItems.clear();
+                selectedOnHoldItems.clear();
+                
+                // ローカルストレージからも削除
+                clearLocalStorage();
+                
+                // アップロードステータスをリセット
+                document.getElementById('inventoryStatus').textContent = '未アップロード';
+                document.getElementById('inventoryStatus').className = 'status-badge status-normal';
+                document.getElementById('salesStatus').textContent = '未アップロード';
+                document.getElementById('salesStatus').className = 'status-badge status-normal';
+                document.getElementById('lastCalculation').textContent = '最終計算: 未実行';
+                
+                // アップロードデータもリセット
+                uploadedInventoryData = null;
+                uploadedSalesData = null;
+                
+                // ファイル入力もリセット
+                document.getElementById('inventoryFile').value = '';
+                document.getElementById('salesFile').value = '';
+                
+                // 画面を更新
+                updateSummaryCards();
+                updateTables();
+                updateCategoryFilter();
+                
+                showNotification('全てのデータを削除しました');
+            }
+        }
+
         // 選択機能
         function toggleReorderItemSelection(itemId) {
             if (selectedReorderItems.has(itemId)) {
@@ -1553,6 +1701,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     updateSummaryCards();
                     updateTables();
+                    saveToLocalStorage();
                     showNotification(`${item.name}を発注中に移動しました`);
                 }
             }
@@ -1578,6 +1727,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     updateSummaryCards();
                     updateTables();
+                    saveToLocalStorage();
                     showNotification(`${item.name}を発注停止中に移動しました`);
                 }
             }
@@ -1613,6 +1763,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 selectedReorderItems.clear();
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification(`${selectedItems.length}件を発注中に移動しました`);
             }
         }
@@ -1625,6 +1776,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 selectedOrderedItems.clear();
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification('選択した発注を完了しました');
             }
         }
@@ -1657,6 +1809,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 selectedOrderedItems.clear();
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification('選択した発注を削除しました');
             }
         }
@@ -1689,6 +1842,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 selectedOnHoldItems.clear();
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification('選択した商品の発注を再開しました');
             }
         }
@@ -1701,6 +1855,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 selectedOnHoldItems.clear();
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification('選択した商品を削除しました');
             }
         }
@@ -1711,6 +1866,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 orderedItems = orderedItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification(`${item.name}の発注を完了しました`);
             }
         }
@@ -1721,6 +1877,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 orderedItems = orderedItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification(`${item.name}の発注をキャンセルしました`);
             }
         }
@@ -1748,6 +1905,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification(`${item.name}の発注を再開しました`);
             }
         }
@@ -1758,6 +1916,7 @@ P003,マウス 無線,PC・周辺機器,10`;
                 onHoldItems = onHoldItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
+                saveToLocalStorage();
                 showNotification(`${item.name}を削除しました`);
             }
         }
