@@ -291,19 +291,22 @@
 
         /* 商品コード表示 */
         .product-code {
-            font-family: 'Courier New', monospace;
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 12px;
-            color: #666;
-            margin-right: 8px;
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            background: #e8f4f8;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            border: 1px solid #bce8f1;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            white-space: nowrap;
         }
 
         .product-code:hover {
-            background: #e0e0e0;
+            background: #d1ecf1;
+            border-color: #85d4e3;
         }
 
         .product-name-container {
@@ -315,6 +318,11 @@
         .product-name {
             flex: 1;
             min-width: 200px;
+        }
+
+        .product-code-column {
+            width: 120px;
+            text-align: center;
         }
 
         .copy-notification {
@@ -666,6 +674,7 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
+                            <th class="product-code-column">商品コード</th>
                             <th>商品名</th>
                             <th>カテゴリ</th>
                             <th>現在在庫</th>
@@ -678,7 +687,7 @@
                     </thead>
                     <tbody id="reorderTableBody">
                         <tr>
-                            <td colspan="9" class="loading">データをアップロードしてください</td>
+                            <td colspan="10" class="loading">データをアップロードしてください</td>
                         </tr>
                     </tbody>
                 </table>
