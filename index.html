@@ -321,7 +321,51 @@
         }
 
         .product-code-column {
+            width: 100px;
+            text-align: center;
+        }
+
+        .category-column {
             width: 120px;
+        }
+
+        .stock-column {
+            width: 80px;
+            text-align: center;
+        }
+
+        .reorder-point-column {
+            width: 80px;
+            text-align: center;
+        }
+
+        .shortage-column {
+            width: 80px;
+            text-align: center;
+        }
+
+        .daily-average-column {
+            width: 100px;
+            text-align: center;
+        }
+
+        .status-column {
+            width: 80px;
+            text-align: center;
+        }
+
+        .order-date-column {
+            width: 100px;
+            text-align: center;
+        }
+
+        .delivery-date-column {
+            width: 100px;
+            text-align: center;
+        }
+
+        .quantity-column {
+            width: 80px;
             text-align: center;
         }
 
@@ -513,8 +557,14 @@
         }
 
         .action-column {
-            width: 120px;
+            width: 140px;
             text-align: center;
+        }
+
+        .action-column .btn-sm {
+            margin: 0 2px;
+            padding: 4px 8px;
+            font-size: 11px;
         }
 
         .item-checkbox {
@@ -676,12 +726,12 @@
                             <th class="checkbox-column">選択</th>
                             <th class="product-code-column">商品コード</th>
                             <th>商品名</th>
-                            <th>カテゴリ</th>
-                            <th>現在在庫</th>
-                            <th>発注点</th>
-                            <th>不足数</th>
-                            <th>日平均販売</th>
-                            <th>優先度</th>
+                            <th class="category-column">カテゴリ</th>
+                            <th class="stock-column">現在在庫</th>
+                            <th class="reorder-point-column">発注点</th>
+                            <th class="shortage-column">不足数</th>
+                            <th class="daily-average-column">日平均販売</th>
+                            <th class="status-column">優先度</th>
                             <th class="action-column">個別操作</th>
                         </tr>
                     </thead>
@@ -713,19 +763,20 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
+                            <th class="product-code-column">商品コード</th>
                             <th>商品名</th>
-                            <th>カテゴリ</th>
-                            <th>現在在庫</th>
-                            <th>発注数</th>
-                            <th>発注日</th>
-                            <th>予定納期</th>
-                            <th>ステータス</th>
+                            <th class="category-column">カテゴリ</th>
+                            <th class="stock-column">現在在庫</th>
+                            <th class="quantity-column">発注数</th>
+                            <th class="order-date-column">発注日</th>
+                            <th class="delivery-date-column">予定納期</th>
+                            <th class="status-column">ステータス</th>
                             <th class="action-column">個別操作</th>
                         </tr>
                     </thead>
                     <tbody id="orderedTableBody">
                         <tr>
-                            <td colspan="9" class="loading">発注中の商品はありません</td>
+                            <td colspan="10" class="loading">発注中の商品はありません</td>
                         </tr>
                     </tbody>
                 </table>
@@ -751,18 +802,19 @@
                     <thead>
                         <tr>
                             <th class="checkbox-column">選択</th>
+                            <th class="product-code-column">商品コード</th>
                             <th>商品名</th>
-                            <th>カテゴリ</th>
-                            <th>現在在庫</th>
-                            <th>発注点</th>
-                            <th>停止日</th>
-                            <th>ステータス</th>
+                            <th class="category-column">カテゴリ</th>
+                            <th class="stock-column">現在在庫</th>
+                            <th class="reorder-point-column">発注点</th>
+                            <th class="order-date-column">停止日</th>
+                            <th class="status-column">ステータス</th>
                             <th class="action-column">個別操作</th>
                         </tr>
                     </thead>
                     <tbody id="onHoldTableBody">
                         <tr>
-                            <td colspan="8" class="loading">発注停止中の商品はありません</td>
+                            <td colspan="9" class="loading">発注停止中の商品はありません</td>
                         </tr>
                     </tbody>
                 </table>
@@ -773,18 +825,19 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th class="product-code-column">商品コード</th>
                             <th>商品名</th>
-                            <th>カテゴリ</th>
-                            <th>現在在庫</th>
-                            <th>発注点</th>
-                            <th>日平均販売</th>
-                            <th>ステータス</th>
+                            <th class="category-column">カテゴリ</th>
+                            <th class="stock-column">現在在庫</th>
+                            <th class="reorder-point-column">発注点</th>
+                            <th class="daily-average-column">日平均販売</th>
+                            <th class="status-column">ステータス</th>
                             <th class="action-column">操作</th>
                         </tr>
                     </thead>
                     <tbody id="allTableBody">
                         <tr>
-                            <td colspan="7" class="loading">データをアップロードしてください</td>
+                            <td colspan="8" class="loading">データをアップロードしてください</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1061,7 +1114,15 @@
         }
 
         function updateSummaryCards() {
-            const urgentCount = inventoryData.filter(item => item.needsReorder).length;
+            // 発注中と発注停止中の商品IDを取得
+            const orderedIds = new Set(orderedItems.map(item => item.id));
+            const onHoldIds = new Set(onHoldItems.map(item => item.id));
+            
+            // 発注必要商品から発注中と発注停止中の商品を除外
+            const urgentCount = inventoryData.filter(item => 
+                item.needsReorder && !orderedIds.has(item.id) && !onHoldIds.has(item.id)
+            ).length;
+            
             const orderedCount = orderedItems.length;
             const onHoldCount = onHoldItems.length;
             const normalCount = inventoryData.filter(item => item.status === 'normal').length;
@@ -1081,13 +1142,20 @@
 
         function updateReorderTable() {
             const tbody = document.getElementById('reorderTableBody');
-            const reorderItems = inventoryData.filter(item => item.needsReorder);
+            // 発注中と発注停止中の商品IDを取得
+            const orderedIds = new Set(orderedItems.map(item => item.id));
+            const onHoldIds = new Set(onHoldItems.map(item => item.id));
+            
+            // 発注必要商品から発注中と発注停止中の商品を除外
+            const reorderItems = inventoryData.filter(item => 
+                item.needsReorder && !orderedIds.has(item.id) && !onHoldIds.has(item.id)
+            );
             
             selectedReorderItems.clear();
             updateReorderSelection();
             
             if (reorderItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="loading">発注が必要な商品はありません</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="loading">発注が必要な商品はありません</td></tr>';
                 return;
             }
 
@@ -1096,18 +1164,18 @@
                     <td class="checkbox-column">
                         <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleReorderItemSelection('${item.id}')">
                     </td>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
+                    <td class="product-code-column">
+                        <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
                     </td>
-                    <td>${item.category}</td>
-                    <td><span class="number-${item.currentStock <= 5 ? 'negative' : 'neutral'}">${item.currentStock}</span></td>
-                    <td>${item.reorderPoint}</td>
-                    <td><span class="number-negative">${item.shortage}</span></td>
-                    <td>${item.dailyAverage}</td>
-                    <td><span class="status-badge status-${item.status}">${getPriorityText(item.status)}</span></td>
+                    <td>
+                        <span class="product-name">${item.name}</span>
+                    </td>
+                    <td class="category-column">${item.category}</td>
+                    <td class="stock-column"><span class="number-${item.currentStock <= 5 ? 'negative' : 'neutral'}">${item.currentStock}</span></td>
+                    <td class="reorder-point-column">${item.reorderPoint}</td>
+                    <td class="shortage-column"><span class="number-negative">${item.shortage}</span></td>
+                    <td class="daily-average-column">${item.dailyAverage}</td>
+                    <td class="status-column"><span class="status-badge status-${item.status}">${getPriorityText(item.status)}</span></td>
                     <td class="action-column">
                         <button class="btn btn-success btn-sm" onclick="markSingleAsOrdered('${item.id}')">発注</button>
                         <button class="btn btn-warning btn-sm" onclick="markAsOnHold('${item.id}')">停止</button>
@@ -1123,7 +1191,7 @@
             updateOrderedSelection();
             
             if (orderedItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="loading">発注中の商品はありません</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="loading">発注中の商品はありません</td></tr>';
                 return;
             }
 
@@ -1132,18 +1200,18 @@
                     <td class="checkbox-column">
                         <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleOrderedItemSelection('${item.id}')">
                     </td>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
+                    <td class="product-code-column">
+                        <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
                     </td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.orderedQuantity}</td>
-                    <td>${item.orderDate}</td>
-                    <td>${item.expectedDelivery}</td>
-                    <td><span class="status-badge status-ordered">発注中</span></td>
+                    <td>
+                        <span class="product-name">${item.name}</span>
+                    </td>
+                    <td class="category-column">${item.category}</td>
+                    <td class="stock-column">${item.currentStock}</td>
+                    <td class="quantity-column">${item.orderedQuantity}</td>
+                    <td class="order-date-column">${item.orderDate}</td>
+                    <td class="delivery-date-column">${item.expectedDelivery}</td>
+                    <td class="status-column"><span class="status-badge status-ordered">発注中</span></td>
                     <td class="action-column">
                         <button class="btn btn-success btn-sm" onclick="completeOrder('${item.id}')">完了</button>
                         <button class="btn btn-danger btn-sm" onclick="cancelOrder('${item.id}')">削除</button>
@@ -1159,7 +1227,7 @@
             updateOnHoldSelection();
             
             if (onHoldItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">発注停止中の商品はありません</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="loading">発注停止中の商品はありません</td></tr>';
                 return;
             }
 
@@ -1168,17 +1236,17 @@
                     <td class="checkbox-column">
                         <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleOnHoldItemSelection('${item.id}')">
                     </td>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
+                    <td class="product-code-column">
+                        <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
                     </td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.reorderPoint}</td>
-                    <td>${item.onHoldDate}</td>
-                    <td><span class="status-badge status-on-hold">停止中</span></td>
+                    <td>
+                        <span class="product-name">${item.name}</span>
+                    </td>
+                    <td class="category-column">${item.category}</td>
+                    <td class="stock-column">${item.currentStock}</td>
+                    <td class="reorder-point-column">${item.reorderPoint}</td>
+                    <td class="order-date-column">${item.onHoldDate}</td>
+                    <td class="status-column"><span class="status-badge status-on-hold">停止中</span></td>
                     <td class="action-column">
                         <button class="btn btn-success btn-sm" onclick="resumeOrder('${item.id}')">再開</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteOnHoldItem('${item.id}')">削除</button>
@@ -1191,23 +1259,23 @@
             const tbody = document.getElementById('allTableBody');
             
             if (inventoryData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">データをアップロードしてください</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">データをアップロードしてください</td></tr>';
                 return;
             }
 
             tbody.innerHTML = inventoryData.map(item => `
                 <tr>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
+                    <td class="product-code-column">
+                        <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
                     </td>
-                    <td>${item.category}</td>
-                    <td><span class="number-${item.currentStock <= 5 ? 'negative' : 'neutral'}">${item.currentStock}</span></td>
-                    <td>${item.reorderPoint}</td>
-                    <td>${item.dailyAverage}</td>
-                    <td><span class="status-badge status-${item.status}">${getStatusText(item.status)}</span></td>
+                    <td>
+                        <span class="product-name">${item.name}</span>
+                    </td>
+                    <td class="category-column">${item.category}</td>
+                    <td class="stock-column"><span class="number-${item.currentStock <= 5 ? 'negative' : 'neutral'}">${item.currentStock}</span></td>
+                    <td class="reorder-point-column">${item.reorderPoint}</td>
+                    <td class="daily-average-column">${item.dailyAverage}</td>
+                    <td class="status-column"><span class="status-badge status-${item.status}">${getStatusText(item.status)}</span></td>
                     <td class="action-column">
                         ${item.needsReorder ? 
                             '<button class="btn btn-success btn-sm" onclick="markSingleAsOrdered(\'' + item.id + '\')">発注</button>' : 
@@ -1255,11 +1323,13 @@
             
             rows.forEach(row => {
                 const productName = row.querySelector('.product-name');
-                const category = row.cells[currentTab === 'all' ? 1 : 2];
+                const categoryCell = currentTab === 'all' ? 
+                    row.cells[2] : // 全商品タブではカテゴリは3番目
+                    row.cells[3];   // 他のタブではカテゴリは4番目
                 
-                if (productName && category) {
+                if (productName && categoryCell) {
                     const nameMatch = productName.textContent.toLowerCase().includes(searchTerm);
-                    const categoryMatch = !categoryFilter || category.textContent === categoryFilter;
+                    const categoryMatch = !categoryFilter || categoryCell.textContent === categoryFilter;
                     
                     row.style.display = (nameMatch && categoryMatch) ? '' : 'none';
                 }
@@ -1300,9 +1370,15 @@
         function copyAllCurrentTabCodes() {
             let codes = [];
             
+            // 発注中と発注停止中の商品IDを取得
+            const orderedIds = new Set(orderedItems.map(item => item.id));
+            const onHoldIds = new Set(onHoldItems.map(item => item.id));
+            
             switch (currentTab) {
                 case 'reorder':
-                    codes = inventoryData.filter(item => item.needsReorder).map(item => item.id);
+                    codes = inventoryData.filter(item => 
+                        item.needsReorder && !orderedIds.has(item.id) && !onHoldIds.has(item.id)
+                    ).map(item => item.id);
                     break;
                 case 'ordered':
                     codes = orderedItems.map(item => item.id);
