@@ -116,6 +116,15 @@
             background: #219a52;
         }
 
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
         /* サマリーカード */
         .summary-grid {
             display: grid;
@@ -310,28 +319,6 @@
         .copy-notification.show {
             opacity: 1;
             transform: translateY(0);
-        }
-
-        /* 一括コピーボタン */
-        .bulk-copy-btn {
-            background: #9b59b6;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-            transition: background 0.3s;
-        }
-
-        .bulk-copy-btn:hover {
-            background: #8e44ad;
-        }
-
-        .bulk-copy-btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
         }
 
         /* レスポンシブ */
@@ -569,17 +556,8 @@
             font-size: 12px;
         }
 
-        .btn-warning {
-            background: #f39c12;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #e67e22;
-        }
-
         .action-column {
-            width: 80px;
+            width: 120px;
             text-align: center;
         }
 
@@ -772,43 +750,6 @@
                 <span id="lastUpdate">最終更新: --:--</span>
                 <button class="btn" onclick="refreshData()">🔄 更新</button>
             </div>
-
-            <!-- 発注停止中タブ -->
-            <div id="onhold-tab" class="tab-content">
-                <div class="table-controls">
-                    <div class="selection-controls">
-                        <label>
-                            <input type="checkbox" id="selectAllOnHold" onchange="toggleSelectAllOnHold()">
-                            全選択
-                        </label>
-                        <span class="selected-count" id="onHoldSelectedCount">0件選択</span>
-                    </div>
-                    <div class="action-controls">
-                        <button class="btn btn-success btn-sm" onclick="resumeSelectedOrders()" id="resumeOrdersBtn" disabled>選択商品を発注再開</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteSelectedOnHold()" id="deleteOnHoldBtn" disabled>選択商品を削除</button>
-                    </div>
-                </div>
-                
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="checkbox-column">選択</th>
-                            <th>商品名</th>
-                            <th>カテゴリ</th>
-                            <th>現在在庫</th>
-                            <th>発注点</th>
-                            <th>停止日</th>
-                            <th>ステータス</th>
-                            <th class="action-column">個別操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="onHoldTableBody">
-                        <tr>
-                            <td colspan="8" class="loading">発注停止中の商品はありません</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
         </div>
     </header>
 
@@ -819,12 +760,12 @@
             <div class="upload-section">
                 <div class="upload-group">
                     <label for="inventoryFile">📦 商品データCSV</label>
-                    <input type="file" id="inventoryFile" accept=".csv" onchange="handleInventoryFile(event)">
+                    <input type="file" id="inventoryFile" accept=".csv" onchange="handleInventoryFileUpload(event)">
                     <small>スマレジの商品データCSVファイル (商品データ20250707150911.csv形式)</small>
                 </div>
                 <div class="upload-group">
                     <label for="salesFile">📊 在庫履歴集計CSV</label>
-                    <input type="file" id="salesFile" accept=".csv" onchange="handleSalesFile(event)">
+                    <input type="file" id="salesFile" accept=".csv" onchange="handleSalesFileUpload(event)">
                     <small>スマレジの在庫履歴集計CSVファイル (在庫履歴集計20250707153725.csv形式)</small>
                 </div>
             </div>
@@ -969,6 +910,43 @@
                     <tbody id="orderedTableBody">
                         <tr>
                             <td colspan="9" class="loading">発注中の商品はありません</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 発注停止中タブ -->
+            <div id="onhold-tab" class="tab-content">
+                <div class="table-controls">
+                    <div class="selection-controls">
+                        <label>
+                            <input type="checkbox" id="selectAllOnHold" onchange="toggleSelectAllOnHold()">
+                            全選択
+                        </label>
+                        <span class="selected-count" id="onHoldSelectedCount">0件選択</span>
+                    </div>
+                    <div class="action-controls">
+                        <button class="btn btn-success btn-sm" onclick="resumeSelectedOrders()" id="resumeOrdersBtn" disabled>選択商品を発注再開</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteSelectedOnHold()" id="deleteOnHoldBtn" disabled>選択商品を削除</button>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-column">選択</th>
+                            <th>商品名</th>
+                            <th>カテゴリ</th>
+                            <th>現在在庫</th>
+                            <th>発注点</th>
+                            <th>停止日</th>
+                            <th>ステータス</th>
+                            <th class="action-column">個別操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="onHoldTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">発注停止中の商品はありません</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1284,7 +1262,6 @@
         let selectedOrderedItems = new Set();
         let selectedOnHoldItems = new Set();
         let itemsToOrder = [];
-        let GOOGLE_SCRIPT_URL = ''; // Google Apps ScriptのWebアプリURLを設定
         let currentSettings = {
             analysisWeeks: 2,
             leadTime: 7,
@@ -1315,9 +1292,8 @@
             updateCurrentSettingsDisplay();
         });
 
-        // サンプルデータ（実際のAPIからのデータを模擬）
+        // サンプルデータ
         function loadSampleData() {
-            // サンプルデータ
             inventoryData = [
                 {
                     id: 'P001',
@@ -1346,52 +1322,9 @@
                     needsReorder: true,
                     leadTime: 3,
                     supplier: 'オフィスマート'
-                },
-                {
-                    id: 'P003',
-                    name: 'マウス ワイヤレス',
-                    category: 'PC・周辺機器',
-                    currentStock: 8,
-                    totalSales: 14,
-                    dailyAverage: 1.0,
-                    reorderPoint: 37,
-                    shortage: 29,
-                    status: 'warning',
-                    needsReorder: true,
-                    leadTime: 5,
-                    supplier: 'テックサプライ'
-                },
-                {
-                    id: 'P004',
-                    name: 'コピー用紙 A3 250枚',
-                    category: 'オフィス用品',
-                    currentStock: 15,
-                    totalSales: 8,
-                    dailyAverage: 0.6,
-                    reorderPoint: 22,
-                    shortage: 7,
-                    status: 'warning',
-                    needsReorder: true,
-                    leadTime: 3,
-                    supplier: 'オフィスマート'
-                },
-                {
-                    id: 'P005',
-                    name: 'USBメモリ 32GB',
-                    category: 'PC・周辺機器',
-                    currentStock: 50,
-                    totalSales: 35,
-                    dailyAverage: 2.5,
-                    reorderPoint: 93,
-                    shortage: 43,
-                    status: 'warning',
-                    needsReorder: true,
-                    leadTime: 7,
-                    supplier: 'テックサプライ'
                 }
             ];
 
-            // 発注中データ
             orderedItems = [
                 {
                     id: 'P006',
@@ -1406,7 +1339,6 @@
                 }
             ];
 
-            // 発注停止中データ
             onHoldItems = [
                 {
                     id: 'P007',
@@ -1426,8 +1358,8 @@
             updateCategoryFilter();
         }
 
-        // スマレジCSVファイル処理（実際のデータ構造対応）
-        function handleInventoryFile(event) {
+        // CSVファイル処理
+        function handleInventoryFileUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -1436,7 +1368,6 @@
                         const csv = e.target.result;
                         uploadedInventoryData = parseSmaregiInventoryCSV(csv);
                         
-                        // データ検証
                         if (validateInventoryData(uploadedInventoryData)) {
                             document.getElementById('inventoryStatus').textContent = `✅ ${uploadedInventoryData.length}件読み込み`;
                             document.getElementById('inventoryStatus').className = 'status-badge status-uploaded';
@@ -1454,7 +1385,7 @@
             }
         }
 
-        function handleSalesFile(event) {
+        function handleSalesFileUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -1463,7 +1394,6 @@
                         const csv = e.target.result;
                         uploadedSalesData = parseSmaregiSalesCSV(csv);
                         
-                        // データ検証
                         if (validateSalesData(uploadedSalesData)) {
                             document.getElementById('salesStatus').textContent = `✅ ${uploadedSalesData.length}件読み込み`;
                             document.getElementById('salesStatus').className = 'status-badge status-uploaded';
@@ -1481,7 +1411,7 @@
             }
         }
 
-        // スマレジ商品データCSV解析（商品データ20250707150911.csv形式）
+        // CSV解析関数
         function parseSmaregiInventoryCSV(csvText) {
             const lines = csvText.split('\n');
             const data = [];
@@ -1489,24 +1419,22 @@
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line && line.length > 0) {
-                    // CSV行を解析（カンマ区切り、ダブルクォート対応）
                     const columns = parseCSVLine(line);
                     
                     if (columns.length >= 16) {
-                        // C列(商品コード), D列(部門名), F列(商品名), P列(在庫数)を使用
-                        const productCode = columns[2] || '';  // C列: 商品コード
-                        const department = columns[3] || '';   // D列: 部門名
-                        const productName = columns[5] || '';  // F列: 商品名
-                        const currentStock = parseInt(columns[15]) || 0;  // P列: 在庫数
+                        const productCode = columns[2] || '';
+                        const department = columns[3] || '';
+                        const productName = columns[5] || '';
+                        const currentStock = parseInt(columns[15]) || 0;
                         
                         if (productCode && productName) {
                             data.push({
                                 productId: productCode,
                                 productName: productName,
-                                category: department || '未分類', // D列の部門名をカテゴリとして使用
+                                category: department || '未分類',
                                 currentStock: currentStock,
                                 supplier: '未設定',
-                                unitCost: 0 // 仕入価格の列が不明のため0に設定
+                                unitCost: 0
                             });
                         }
                     }
@@ -1515,7 +1443,6 @@
             return data;
         }
 
-        // スマレジ在庫履歴集計CSV解析（在庫履歴集計20250707153725.csv形式）
         function parseSmaregiSalesCSV(csvText) {
             const lines = csvText.split('\n');
             const data = [];
@@ -1523,20 +1450,18 @@
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line && line.length > 0) {
-                    // CSV行を解析
                     const columns = parseCSVLine(line);
                     
                     if (columns.length >= 11) {
-                        // C列(商品コード), K列(販売数)を使用
-                        const productCode = columns[2] || '';  // C列: 商品コード
-                        const salesQuantity = parseInt(columns[10]) || 0;  // K列: 販売数
+                        const productCode = columns[2] || '';
+                        const salesQuantity = parseInt(columns[10]) || 0;
                         
                         if (productCode && salesQuantity > 0) {
                             data.push({
                                 productId: productCode,
-                                saleDate: new Date().toISOString().split('T')[0], // 今日の日付
+                                saleDate: new Date().toISOString().split('T')[0],
                                 quantity: salesQuantity,
-                                unitPrice: 0 // 単価情報がない場合は0
+                                unitPrice: 0
                             });
                         }
                     }
@@ -1545,7 +1470,6 @@
             return data;
         }
 
-        // CSV行解析（ダブルクォート対応）
         function parseCSVLine(line) {
             const result = [];
             let current = '';
@@ -1568,30 +1492,8 @@
             return result;
         }
 
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n');
-            const delimiter = currentSettings.csvDelimiter;
-            const headers = lines[0].split(delimiter).map(h => h.trim().replace(/"/g, ''));
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line && (!currentSettings.skipEmptyRows || line.length > 0)) {
-                    const values = line.split(delimiter).map(v => v.trim().replace(/"/g, ''));
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
-                    });
-                    data.push(row);
-                }
-            }
-            return data;
-        }
-
         function validateInventoryData(data) {
             if (!data || data.length === 0) return false;
-            
-            // スマレジ商品データの必須項目チェック
             const requiredFields = ['productId', 'productName', 'currentStock'];
             return data.every(row => 
                 requiredFields.every(field => 
@@ -1602,8 +1504,6 @@
 
         function validateSalesData(data) {
             if (!data || data.length === 0) return false;
-            
-            // スマレジ在庫履歴データの必須項目チェック
             const requiredFields = ['productId', 'quantity'];
             return data.every(row => 
                 requiredFields.every(field => 
@@ -1623,176 +1523,16 @@
             }
         }
 
-        function downloadSampleCSV() {
-            // スマレジ形式のサンプルCSVの生成
-            const inventorySample = 
-                '"商品ID","店舗ID","商品コード","部門名","商品価格","商品名","商品カテゴリ","商品単位","グループコード","タグ","部門","売上税区分","在庫管理区分","部門","売上表示","在庫","値引率","登録日時","更新日時","値引率","登録日時","更新日時","安全在庫係数","コード台帳","選択肢1","選択肢2","選択肢3"\n' +
-                '"1","1","P001","自動車部品","1000","P7 パーツフィルター50mm","自動車部品","個","","","","","0","100","1","5","","2025/07/07 15:00:00","2025/07/07 15:00:00","","","","","","","",""\n' +
-                '"2","1","P002","自動車部品","2000","P8 日産 フロント ハブベアリング","自動車部品","個","","","","","0","100","1","10","","2025/07/07 15:00:00","2025/07/07 15:00:00","","","","","","","",""\n' +
-                '"3","1","P003","自動車部品","1500","P9 スズキ ジムニー用 ブレーキホース","自動車部品","個","","","","","0","100","1","3","","2025/07/07 15:00:00","2025/07/07 15:00:00","","","","","","","",""\n';
-            
-            const salesSample = 
-                '"商品ID","グループコード","商品コード","商品名","仕入:数量","仕入:金額合計","棚卸:数量","棚卸:金額合計","転出:数量","転出:金額合計","販売:数量","販売:金額合計","返品:数量","返品:金額合計","出庫:数量","出庫:金額合計","選択:数量","選択:金額合計","廃棄:数量","廃棄:金額合計","振替:数量","振替:金額合計","WebAPIアップ:数量","WebAPIアップ:金額合計","手動アップ:数量","手動アップ:金額合計","取寄販売:数量","取寄販売:金額合計","返品処理:数量","返品処理:金額合計","合計:数量","合計:金額合計","在庫消化率"\n' +
-                '"1","","P001","P7 パーツフィルター50mm","0","0.00","0","0.00","0","0.00","5","5000.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","5","5000.00","50.00"\n' +
-                '"2","","P002","P8 日産 フロント ハブベアリング","0","0.00","0","0.00","0","0.00","3","6000.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","3","6000.00","30.00"\n' +
-                '"3","","P003","P9 スズキ ジムニー用 ブレーキホース","0","0.00","0","0.00","0","0.00","8","12000.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","0","0.00","8","12000.00","80.00"\n';
-            
-            // サンプルファイルの作成
-            const combinedSample = 
-                '=== 商品データサンプル (商品データ20250707150911.csv形式) ===\n' +
-                '使用する列: C列(商品コード), D列(部門名), F列(商品名), P列(在庫数)\n\n' +
-                inventorySample + '\n\n' +
-                '=== 在庫履歴集計サンプル (在庫履歴集計20250707153725.csv形式) ===\n' +
-                '使用する列: C列(商品コード), K列(販売数量)\n\n' +
-                salesSample;
-            
-            // ダウンロード
-            const blob = new Blob([combinedSample], { type: 'text/plain; charset=shift_jis' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'smaregi_sample_format.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            alert('スマレジCSVサンプルをダウンロードしました！\n\n【重要】\n' +
-                  '・商品データ: C列(商品コード), D列(部門名), F列(商品名), P列(在庫数)\n' +
-                  '・在庫履歴集計: C列(商品コード), K列(販売数量)\n' +
-                  '・エンコーディング: Shift-JIS\n' +
-                  '・スマレジから該当するCSVファイルをエクスポートしてください');
-        }
-
-        // 設定関連の関数
-        function showSettings() {
-            // 現在の設定をフォームに反映
-            document.getElementById('analysisWeeks').value = currentSettings.analysisWeeks;
-            document.getElementById('leadTime').value = currentSettings.leadTime;
-            document.getElementById('safetyStock').value = currentSettings.safetyStock;
-            document.getElementById('urgentThreshold').value = currentSettings.urgentThreshold;
-            document.getElementById('autoCalculate').value = currentSettings.autoCalculate;
-            document.getElementById('csvEncoding').value = currentSettings.csvEncoding;
-            document.getElementById('csvDelimiter').value = currentSettings.csvDelimiter;
-            document.getElementById('validateData').checked = currentSettings.validateData;
-            document.getElementById('skipEmptyRows').checked = currentSettings.skipEmptyRows;
-            document.getElementById('autoCorrectData').checked = currentSettings.autoCorrectData;
-            document.getElementById('googleScriptUrl').value = currentSettings.googleScriptUrl;
-            document.getElementById('emailNotification').value = currentSettings.emailNotification;
-            document.getElementById('emailAddress').value = currentSettings.emailAddress;
-            document.getElementById('slackNotification').value = currentSettings.slackNotification;
-            document.getElementById('slackWebhook').value = currentSettings.slackWebhook;
-            document.getElementById('itemsPerPage').value = currentSettings.itemsPerPage;
-            document.getElementById('theme').value = currentSettings.theme;
-            document.getElementById('refreshInterval').value = currentSettings.refreshInterval;
-            document.getElementById('compactMode').value = currentSettings.compactMode;
-            
-            document.getElementById('settingsModal').style.display = 'block';
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').style.display = 'none';
-        }
-
-        function showSettingsTab(tabName) {
-            // タブボタンの状態更新
-            document.querySelectorAll('.settings-tab-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // タブコンテンツの表示切り替え
-            document.querySelectorAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + '-settings').classList.add('active');
-        }
-
-        function saveSettings() {
-            // フォームから設定を取得
-            currentSettings.analysisWeeks = parseInt(document.getElementById('analysisWeeks').value);
-            currentSettings.leadTime = parseInt(document.getElementById('leadTime').value);
-            currentSettings.safetyStock = parseInt(document.getElementById('safetyStock').value);
-            currentSettings.urgentThreshold = parseInt(document.getElementById('urgentThreshold').value);
-            currentSettings.autoCalculate = document.getElementById('autoCalculate').value;
-            currentSettings.csvEncoding = document.getElementById('csvEncoding').value;
-            currentSettings.csvDelimiter = document.getElementById('csvDelimiter').value;
-            currentSettings.validateData = document.getElementById('validateData').checked;
-            currentSettings.skipEmptyRows = document.getElementById('skipEmptyRows').checked;
-            currentSettings.autoCorrectData = document.getElementById('autoCorrectData').checked;
-            currentSettings.googleScriptUrl = document.getElementById('googleScriptUrl').value;
-            currentSettings.emailNotification = document.getElementById('emailNotification').value;
-            currentSettings.emailAddress = document.getElementById('emailAddress').value;
-            currentSettings.slackNotification = document.getElementById('slackNotification').value;
-            currentSettings.slackWebhook = document.getElementById('slackWebhook').value;
-            currentSettings.itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
-            currentSettings.theme = document.getElementById('theme').value;
-            currentSettings.refreshInterval = document.getElementById('refreshInterval').value;
-            currentSettings.compactMode = document.getElementById('compactMode').value === 'true';
-
-            // ローカルストレージに保存
-            localStorage.setItem('inventorySettings', JSON.stringify(currentSettings));
-            
-            // 表示を更新
-            updateCurrentSettingsDisplay();
-            
-            // 設定保存完了メッセージ
-            alert('設定を保存しました！');
-            closeSettings();
-        }
-
-        function loadSettings() {
-            // ローカルストレージから設定を読み込み
-            const savedSettings = localStorage.getItem('inventorySettings');
-            if (savedSettings) {
-                currentSettings = { ...currentSettings, ...JSON.parse(savedSettings) };
-            }
-        }
-
-        function resetSettings() {
-            if (confirm('設定をデフォルトに戻しますか？')) {
-                // デフォルト設定に戻す
-                currentSettings = {
-                    analysisWeeks: 2,
-                    leadTime: 7,
-                    safetyStock: 3,
-                    urgentThreshold: 50,
-                    autoCalculate: 'manual',
-                    csvEncoding: 'shift_jis',
-                    csvDelimiter: ',',
-                    validateData: true,
-                    skipEmptyRows: true,
-                    autoCorrectData: false,
-                    googleScriptUrl: '',
-                    emailNotification: 'disabled',
-                    emailAddress: '',
-                    slackNotification: 'disabled',
-                    slackWebhook: '',
-                    itemsPerPage: 25,
-                    theme: 'light',
-                    refreshInterval: 'manual',
-                    compactMode: false
-                };
-                
-                // フォームに反映
-                showSettings();
-                updateCurrentSettingsDisplay();
-                
-                alert('設定をデフォルトに戻しました！');
-            }
-        }
-
-        function updateCurrentSettingsDisplay() {
-            const settingsText = `分析期間: ${currentSettings.analysisWeeks}週間 | 発注点: 日平均出荷数 × 37日`;
-            document.getElementById('currentSettings').textContent = settingsText;
-        }
-
         function calculateFromCSV() {
             if (!uploadedInventoryData || !uploadedSalesData) {
                 alert('商品データと在庫履歴集計データの両方をアップロードしてください。');
                 return;
             }
 
-            // 発注点計算ロジック（カスタム計算式）
             const analysisWeeks = currentSettings.analysisWeeks;
-            const analysisDays = analysisWeeks * 7; // 分析期間（日数）
-            const reorderCalculationDays = 37; // 発注点計算用の日数（固定）
+            const analysisDays = analysisWeeks * 7;
+            const reorderCalculationDays = 37;
 
-            // 販売データを商品別に集計
             const salesMap = new Map();
             uploadedSalesData.forEach(sale => {
                 const productId = sale.productId;
@@ -1804,28 +1544,19 @@
                 }
             });
 
-            // 在庫データと販売データを結合して発注点を計算
             const calculatedData = uploadedInventoryData.map(item => {
                 const productId = item.productId;
                 const currentStock = parseInt(item.currentStock) || 0;
                 const totalSales = salesMap.get(productId) || 0;
-                
-                // 日平均出荷数を計算
                 const dailyAverage = totalSales / analysisDays;
-                
-                // 発注点計算: 出荷数/14*37＝販売数
                 const reorderPoint = Math.ceil(dailyAverage * reorderCalculationDays);
-                
-                // 発注判定: 在庫数 < 販売数 = 発注点
                 const needsReorder = currentStock < reorderPoint;
                 const shortage = Math.max(0, reorderPoint - currentStock);
                 
-                // ステータス判定
                 let status = 'normal';
                 if (needsReorder) {
-                    // 緊急度の計算（在庫がどの程度不足しているか）
                     const shortageRatio = shortage / reorderPoint;
-                    if (shortageRatio >= 0.5) { // 50%以上不足
+                    if (shortageRatio >= 0.5) {
                         status = 'danger';
                     } else {
                         status = 'warning';
@@ -1848,52 +1579,36 @@
                 };
             });
 
-            // グローバル変数を更新
             inventoryData = calculatedData;
             
-            // 画面を更新
             updateSummaryCards();
             updateTables();
             updateCategoryFilter();
             updateLastUpdateTime();
             document.getElementById('lastCalculation').textContent = `最終計算: ${new Date().toLocaleString('ja-JP')}`;
             
-            // 計算結果のサマリー
             const reorderCount = calculatedData.filter(item => item.needsReorder).length;
             const dangerCount = calculatedData.filter(item => item.status === 'danger').length;
             const warningCount = calculatedData.filter(item => item.status === 'warning').length;
             
-            alert(`発注点計算が完了しました！\n\n` +
-                  `【計算式】\n` +
-                  `日平均出荷数 = ${analysisWeeks}週間出荷数 ÷ ${analysisDays}日\n` +
-                  `発注点 = 日平均出荷数 × 37日\n` +
-                  `発注判定 = 在庫数 < 発注点\n\n` +
-                  `【結果】\n` +
-                  `処理件数: ${calculatedData.length}件\n` +
-                  `発注必要: ${reorderCount}件\n` +
-                  `　├ 緊急: ${dangerCount}件\n` +
-                  `　└ 注意: ${warningCount}件`);
+            alert(`発注点計算が完了しました！\n\n【計算式】\n日平均出荷数 = ${analysisWeeks}週間出荷数 ÷ ${analysisDays}日\n発注点 = 日平均出荷数 × 37日\n発注判定 = 在庫数 < 発注点\n\n【結果】\n処理件数: ${calculatedData.length}件\n発注必要: ${reorderCount}件\n　├ 緊急: ${dangerCount}件\n　└ 注意: ${warningCount}件`);
         }
 
-        // 発注点計算
         function calculateReorderPoints() {
             calculateFromCSV();
         }
 
-        // データ更新
         function refreshData() {
             alert('データを更新しています...');
             updateLastUpdateTime();
         }
 
-        // 最終更新時刻更新
         function updateLastUpdateTime() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('lastUpdate').textContent = `最終更新: ${timeString}`;
         }
 
-        // サマリーカード更新
         function updateSummaryCards() {
             const urgentCount = inventoryData.filter(item => item.needsReorder).length;
             const orderedCount = orderedItems.length;
@@ -1906,7 +1621,6 @@
             document.getElementById('normalCount').textContent = normalCount;
         }
 
-        // テーブル更新
         function updateTables() {
             updateReorderTable();
             updateOrderedTable();
@@ -1914,12 +1628,10 @@
             updateAllTable();
         }
 
-        // 発注必要テーブル更新
         function updateReorderTable() {
             const tbody = document.getElementById('reorderTableBody');
             const reorderItems = inventoryData.filter(item => item.needsReorder);
             
-            // 選択状態をリセット
             selectedReorderItems.clear();
             updateReorderSelection();
             
@@ -1953,11 +1665,9 @@
             `).join('');
         }
 
-        // 発注中テーブル更新
         function updateOrderedTable() {
             const tbody = document.getElementById('orderedTableBody');
             
-            // 選択状態をリセット
             selectedOrderedItems.clear();
             updateOrderedSelection();
             
@@ -1973,941 +1683,4 @@
                     </td>
                     <td>
                         <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
-                    </td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.orderedQuantity}</td>
-                    <td>${item.orderDate}</td>
-                    <td>${item.expectedDelivery}</td>
-                    <td><span class="status-badge status-ordered">発注中</span></td>
-                    <td class="action-column">
-                        <button class="btn btn-sm btn-success" onclick="completeOrder('${item.id}')">入荷</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteOrder('${item.id}')">削除</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-            const tbody = document.getElementById('onHoldTableBody');
-            
-            // 選択状態をリセット
-            selectedOnHoldItems.clear();
-            updateOnHoldSelection();
-            
-            if (onHoldItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">発注停止中の商品はありません</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = onHoldItems.map(item => `
-                <tr>
-                    <td class="checkbox-column">
-                        <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleOnHoldItemSelection('${item.id}')">
-                    </td>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
-                    </td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.reorderPoint || 0}</td>
-                    <td>${item.onHoldDate}</td>
-                    <td><span class="status-badge status-on-hold">発注停止中</span></td>
-                    <td class="action-column">
-                        <button class="btn btn-sm btn-success" onclick="resumeOrder('${item.id}')">再開</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteOnHold('${item.id}')">削除</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-            const tbody = document.getElementById('orderedTableBody');
-            
-            // 選択状態をリセット
-            selectedOrderedItems.clear();
-            updateOrderedSelection();
-            
-            if (orderedItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="loading">発注中の商品はありません</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = orderedItems.map(item => `
-                <tr>
-                    <td class="checkbox-column">
-                        <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="toggleOrderedItemSelection('${item.id}')">
-                    </td>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
-                    </td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.orderedQuantity}</td>
-                    <td>${item.orderDate}</td>
-                    <td>${item.expectedDelivery}</td>
-                    <td><span class="status-badge status-ordered">発注中</span></td>
-                    <td class="action-column">
-                        <button class="btn btn-sm btn-success" onclick="completeOrder('${item.id}')">入荷</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteOrder('${item.id}')">削除</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // 全商品テーブル更新
-        function updateAllTable() {
-            const tbody = document.getElementById('allTableBody');
-            
-            tbody.innerHTML = inventoryData.map(item => `
-                <tr>
-                    <td>
-                        <div class="product-name-container">
-                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span>
-                            <span class="product-name">${item.name}</span>
-                        </div>
-                    </td>
-                    <td>${item.category}</td>
-                    <td><span class="number-${item.currentStock <= 5 ? 'negative' : 'neutral'}">${item.currentStock}</span></td>
-                    <td>${item.reorderPoint}</td>
-                    <td>${item.dailyAverage}</td>
-                    <td><span class="status-badge status-${item.status}">${getStatusText(item.status)}</span></td>
-                    <td class="action-column">
-                        <button class="btn" onclick="showProductDetail('${item.id}')">詳細</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // ステータステキスト取得
-        function getStatusText(status) {
-            switch(status) {
-                case 'danger': return '緊急';
-                case 'warning': return '注意';
-                case 'normal': return '正常';
-                case 'ordered': return '発注中';
-                case 'on-hold': return '発注停止中';
-                default: return '不明';
-            }
-        }
-
-        // 優先度テキスト取得
-        function getPriorityText(status) {
-            switch(status) {
-                case 'danger': return '緊急';
-                case 'warning': return '注意';
-                default: return '正常';
-            }
-        }
-
-        // タブ切り替え
-        function showTab(tabName) {
-            // タブボタンの状態更新
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // タブコンテンツの表示切り替え
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-
-            // タイトル更新
-            const titles = {
-                'reorder': '発注が必要な商品',
-                'ordered': '発注中の商品',
-                'onhold': '発注停止中の商品',
-                'all': '全商品一覧'
-            };
-            document.getElementById('currentTabTitle').textContent = titles[tabName];
-            currentTab = tabName;
-        }
-
-        // 発注停止中選択関連の関数
-        function toggleSelectAllOnHold() {
-            const selectAllCheckbox = document.getElementById('selectAllOnHold');
-            
-            if (selectAllCheckbox.checked) {
-                onHoldItems.forEach(item => selectedOnHoldItems.add(item.id));
-            } else {
-                selectedOnHoldItems.clear();
-            }
-            
-            // 個別チェックボックスを更新
-            document.querySelectorAll('#onHoldTableBody .item-checkbox').forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-            
-            updateOnHoldSelection();
-        }
-
-        function toggleOnHoldItemSelection(itemId) {
-            const checkbox = document.querySelector(`#onHoldTableBody .item-checkbox[data-id="${itemId}"]`);
-            
-            if (checkbox.checked) {
-                selectedOnHoldItems.add(itemId);
-            } else {
-                selectedOnHoldItems.delete(itemId);
-            }
-            
-            // 全選択チェックボックスの状態を更新
-            const selectAllCheckbox = document.getElementById('selectAllOnHold');
-            selectAllCheckbox.checked = selectedOnHoldItems.size === onHoldItems.length;
-            
-            updateOnHoldSelection();
-        }
-
-        function updateOnHoldSelection() {
-            const count = selectedOnHoldItems.size;
-            document.getElementById('onHoldSelectedCount').textContent = `${count}件選択`;
-            document.getElementById('resumeOrdersBtn').disabled = count === 0;
-            document.getElementById('deleteOnHoldBtn').disabled = count === 0;
-        }
-
-        // 発注停止機能
-        function markAsOnHold(productId) {
-            const item = inventoryData.find(item => item.id === productId);
-            if (item) {
-                const reason = prompt('発注停止理由を入力してください:', '');
-                if (reason !== null) {
-                    // 発注停止中リストに追加
-                    onHoldItems.push({
-                        id: item.id,
-                        name: item.name,
-                        category: item.category,
-                        currentStock: item.currentStock,
-                        reorderPoint: item.reorderPoint,
-                        onHoldDate: new Date().toISOString().split('T')[0],
-                        status: 'on-hold',
-                        supplier: item.supplier,
-                        reason: reason
-                    });
-
-                    // 元のデータから削除
-                    inventoryData = inventoryData.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    alert(`${item.name}を発注停止中にしました。`);
-                }
-            }
-        }
-
-        // 発注再開機能
-        function resumeOrder(productId) {
-            if (confirm('この商品の発注を再開しますか？')) {
-                const item = onHoldItems.find(item => item.id === productId);
-                if (item) {
-                    // 元のデータに戻す
-                    const originalItem = {
-                        id: item.id,
-                        name: item.name,
-                        category: item.category,
-                        currentStock: item.currentStock,
-                        totalSales: 0,
-                        dailyAverage: 0,
-                        reorderPoint: item.reorderPoint,
-                        shortage: Math.max(0, item.reorderPoint - item.currentStock),
-                        status: item.currentStock < item.reorderPoint ? 'warning' : 'normal',
-                        needsReorder: item.currentStock < item.reorderPoint,
-                        leadTime: currentSettings.leadTime,
-                        supplier: item.supplier
-                    };
-                    
-                    inventoryData.push(originalItem);
-                    
-                    // 発注停止中から削除
-                    onHoldItems = onHoldItems.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    
-                    alert(`${item.name}の発注を再開しました！`);
-                }
-            }
-        }
-
-        // 発注停止中商品削除
-        function deleteOnHold(productId) {
-            if (confirm('この商品を発注停止中リストから削除しますか？\n※商品は発注必要リストに戻ります')) {
-                resumeOrder(productId);
-            }
-        }
-
-        // 選択商品を発注再開
-        function resumeSelectedOrders() {
-            if (selectedOnHoldItems.size === 0) {
-                alert('発注再開する商品を選択してください。');
-                return;
-            }
-            
-            if (confirm(`選択した${selectedOnHoldItems.size}件の商品の発注を再開しますか？`)) {
-                const resumedItems = [];
-                
-                selectedOnHoldItems.forEach(itemId => {
-                    const item = onHoldItems.find(item => item.id === itemId);
-                    if (item) {
-                        // 元のデータに戻す
-                        const originalItem = {
-                            id: item.id,
-                            name: item.name,
-                            category: item.category,
-                            currentStock: item.currentStock,
-                            totalSales: 0,
-                            dailyAverage: 0,
-                            reorderPoint: item.reorderPoint,
-                            shortage: Math.max(0, item.reorderPoint - item.currentStock),
-                            status: item.currentStock < item.reorderPoint ? 'warning' : 'normal',
-                            needsReorder: item.currentStock < item.reorderPoint,
-                            leadTime: currentSettings.leadTime,
-                            supplier: item.supplier
-                        };
-                        
-                        inventoryData.push(originalItem);
-                        resumedItems.push(item.name);
-                    }
-                });
-                
-                // 発注停止中から削除
-                onHoldItems = onHoldItems.filter(item => !selectedOnHoldItems.has(item.id));
-                selectedOnHoldItems.clear();
-                
-                updateSummaryCards();
-                updateTables();
-                
-                alert(`${resumedItems.length}件の商品の発注を再開しました！\n\n再開商品:\n${resumedItems.join('\n')}`);
-            }
-        }
-
-        // 選択商品を削除
-        function deleteSelectedOnHold() {
-            if (selectedOnHoldItems.size === 0) {
-                alert('削除する商品を選択してください。');
-                return;
-            }
-            
-            if (confirm(`選択した${selectedOnHoldItems.size}件の商品を発注停止中リストから削除しますか？\n\n削除された商品は発注必要リストに戻ります。`)) {
-                resumeSelectedOrders();
-            }
-        }
-            const selectAllCheckbox = document.getElementById('selectAllReorder');
-            const reorderItems = inventoryData.filter(item => item.needsReorder);
-            
-            if (selectAllCheckbox.checked) {
-                reorderItems.forEach(item => selectedReorderItems.add(item.id));
-            } else {
-                selectedReorderItems.clear();
-            }
-            
-            // 個別チェックボックスを更新
-            document.querySelectorAll('#reorderTableBody .item-checkbox').forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-            
-            updateReorderSelection();
-        }
-
-        function toggleReorderItemSelection(itemId) {
-            const checkbox = document.querySelector(`#reorderTableBody .item-checkbox[data-id="${itemId}"]`);
-            
-            if (checkbox.checked) {
-                selectedReorderItems.add(itemId);
-            } else {
-                selectedReorderItems.delete(itemId);
-            }
-            
-            // 全選択チェックボックスの状態を更新
-            const totalItems = inventoryData.filter(item => item.needsReorder).length;
-            const selectAllCheckbox = document.getElementById('selectAllReorder');
-            selectAllCheckbox.checked = selectedReorderItems.size === totalItems;
-            
-            updateReorderSelection();
-        }
-
-        function updateReorderSelection() {
-            const count = selectedReorderItems.size;
-            document.getElementById('reorderSelectedCount').textContent = `${count}件選択`;
-            document.getElementById('moveToOrderedBtn').disabled = count === 0;
-        }
-
-        function toggleSelectAllOrdered() {
-            const selectAllCheckbox = document.getElementById('selectAllOrdered');
-            
-            if (selectAllCheckbox.checked) {
-                orderedItems.forEach(item => selectedOrderedItems.add(item.id));
-            } else {
-                selectedOrderedItems.clear();
-            }
-            
-            // 個別チェックボックスを更新
-            document.querySelectorAll('#orderedTableBody .item-checkbox').forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-            
-            updateOrderedSelection();
-        }
-
-        function toggleOrderedItemSelection(itemId) {
-            const checkbox = document.querySelector(`#orderedTableBody .item-checkbox[data-id="${itemId}"]`);
-            
-            if (checkbox.checked) {
-                selectedOrderedItems.add(itemId);
-            } else {
-                selectedOrderedItems.delete(itemId);
-            }
-            
-            // 全選択チェックボックスの状態を更新
-            const selectAllCheckbox = document.getElementById('selectAllOrdered');
-            selectAllCheckbox.checked = selectedOrderedItems.size === orderedItems.length;
-            
-            updateOrderedSelection();
-        }
-
-        function updateOrderedSelection() {
-            const count = selectedOrderedItems.size;
-            document.getElementById('orderedSelectedCount').textContent = `${count}件選択`;
-            document.getElementById('completeOrdersBtn').disabled = count === 0;
-            document.getElementById('deleteOrdersBtn').disabled = count === 0;
-        }
-
-        // 選択商品を発注中に移動
-        function moveSelectedToOrdered() {
-            if (selectedReorderItems.size === 0) {
-                alert('発注する商品を選択してください。');
-                return;
-            }
-            
-            // 選択商品を取得
-            itemsToOrder = inventoryData.filter(item => selectedReorderItems.has(item.id));
-            
-            // 発注フォームを表示
-            showOrderModal();
-        }
-
-        // 発注フォームモーダル表示
-        function showOrderModal() {
-            const modal = document.getElementById('orderModal');
-            const itemsList = document.getElementById('orderItemsList');
-            
-            // 選択商品リストを表示
-            itemsList.innerHTML = `
-                <h4>発注予定商品 (${itemsToOrder.length}件)</h4>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                    ${itemsToOrder.map(item => 
-                        `<li><span class="product-code" onclick="copyToClipboard('${item.id}')" title="クリックでコピー">${item.id}</span> ${item.name} (不足数: ${item.shortage}個)</li>`
-                    ).join('')}
-                </ul>
-            `;
-            
-            // デフォルト値を設定
-            const today = new Date();
-            const defaultDelivery = new Date(today.getTime() + (currentSettings.leadTime * 24 * 60 * 60 * 1000));
-            document.getElementById('expectedDelivery').value = defaultDelivery.toISOString().split('T')[0];
-            
-            modal.style.display = 'block';
-        }
-
-        function closeOrderModal() {
-            document.getElementById('orderModal').style.display = 'none';
-            // フォームリセット
-            document.getElementById('orderQuantity').value = '';
-            document.getElementById('expectedDelivery').value = '';
-            document.getElementById('orderMemo').value = '';
-        }
-
-        // 発注確定
-        function confirmOrder() {
-            const orderQuantity = parseInt(document.getElementById('orderQuantity').value);
-            const expectedDelivery = document.getElementById('expectedDelivery').value;
-            const orderMemo = document.getElementById('orderMemo').value;
-            
-            if (!orderQuantity || orderQuantity <= 0) {
-                alert('発注数を入力してください。');
-                return;
-            }
-            
-            if (!expectedDelivery) {
-                alert('予定納期を入力してください。');
-                return;
-            }
-            
-            const today = new Date().toISOString().split('T')[0];
-            
-            // 選択商品を発注中に移動
-            itemsToOrder.forEach(item => {
-                orderedItems.push({
-                    id: item.id,
-                    name: item.name,
-                    category: item.category,
-                    currentStock: item.currentStock,
-                    orderedQuantity: orderQuantity,
-                    orderDate: today,
-                    expectedDelivery: expectedDelivery,
-                    status: 'ordered',
-                    supplier: item.supplier,
-                    memo: orderMemo
-                });
-            });
-            
-            // 元のデータから削除
-            inventoryData = inventoryData.filter(item => !selectedReorderItems.has(item.id));
-            
-            // 選択をリセット
-            selectedReorderItems.clear();
-            
-            // 画面更新
-            updateSummaryCards();
-            updateTables();
-            closeOrderModal();
-            
-            alert(`${itemsToOrder.length}件の商品を発注中に移動しました！`);
-        }
-
-        // 単一商品発注
-        function markSingleAsOrdered(productId) {
-            const item = inventoryData.find(item => item.id === productId);
-            if (item) {
-                selectedReorderItems.clear();
-                selectedReorderItems.add(productId);
-                itemsToOrder = [item];
-                showOrderModal();
-            }
-        }
-
-        // 発注完了（入荷）
-        function completeOrder(productId) {
-            if (confirm('この商品の入荷を完了しますか？')) {
-                const item = orderedItems.find(item => item.id === productId);
-                if (item) {
-                    // 在庫を更新して元のデータに戻す
-                    const updatedStock = item.currentStock + item.orderedQuantity;
-                    
-                    // 元のデータに戻す（発注点チェック用）
-                    const originalItem = {
-                        id: item.id,
-                        name: item.name,
-                        category: item.category,
-                        currentStock: updatedStock,
-                        totalSales: 0, // 再計算が必要
-                        dailyAverage: 0,
-                        reorderPoint: 0,
-                        shortage: 0,
-                        status: 'normal',
-                        leadTime: currentSettings.leadTime,
-                        supplier: item.supplier
-                    };
-                    
-                    inventoryData.push(originalItem);
-                    
-                    // 発注中から削除
-                    orderedItems = orderedItems.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    
-                    alert(`${item.name}の入荷を完了しました！\n在庫数: ${item.currentStock} → ${updatedStock}`);
-                }
-            }
-        }
-
-        // 発注削除
-        function deleteOrder(productId) {
-            if (confirm('この発注を削除しますか？\n※商品は発注必要リストに戻ります')) {
-                const item = orderedItems.find(item => item.id === productId);
-                if (item) {
-                    // 元のデータに戻す
-                    const originalItem = {
-                        id: item.id,
-                        name: item.name,
-                        category: item.category,
-                        currentStock: item.currentStock,
-                        totalSales: 0, // 再計算が必要
-                        dailyAverage: 0,
-                        reorderPoint: 0,
-                        shortage: 0,
-                        status: 'warning', // 発注必要として戻す
-                        leadTime: currentSettings.leadTime,
-                        supplier: item.supplier
-                    };
-                    
-                    inventoryData.push(originalItem);
-                    
-                    // 発注中から削除
-                    orderedItems = orderedItems.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    
-                    alert(`${item.name}の発注を削除しました！`);
-                }
-            }
-        }
-
-        // 選択商品を入荷完了
-        function completeSelectedOrders() {
-            if (selectedOrderedItems.size === 0) {
-                alert('入荷完了する商品を選択してください。');
-                return;
-            }
-            
-            if (confirm(`選択した${selectedOrderedItems.size}件の商品の入荷を完了しますか？`)) {
-                const completedItems = [];
-                
-                selectedOrderedItems.forEach(itemId => {
-                    const item = orderedItems.find(item => item.id === itemId);
-                    if (item) {
-                        const updatedStock = item.currentStock + item.orderedQuantity;
-                        
-                        // 元のデータに戻す
-                        const originalItem = {
-                            id: item.id,
-                            name: item.name,
-                            category: item.category,
-                            currentStock: updatedStock,
-                            totalSales: 0,
-                            dailyAverage: 0,
-                            reorderPoint: 0,
-                            shortage: 0,
-                            status: 'normal',
-                            leadTime: currentSettings.leadTime,
-                            supplier: item.supplier
-                        };
-                        
-                        inventoryData.push(originalItem);
-                        completedItems.push(item.name);
-                    }
-                });
-                
-                // 発注中から削除
-                orderedItems = orderedItems.filter(item => !selectedOrderedItems.has(item.id));
-                selectedOrderedItems.clear();
-                
-                updateSummaryCards();
-                updateTables();
-                
-                alert(`${completedItems.length}件の商品の入荷を完了しました！\n\n完了商品:\n${completedItems.join('\n')}`);
-            }
-        }
-
-        // 選択商品を削除
-        function deleteSelectedOrders() {
-            if (selectedOrderedItems.size === 0) {
-                alert('削除する商品を選択してください。');
-                return;
-            }
-            
-            // 全選択の場合は特別な警告
-            const isSelectAll = selectedOrderedItems.size === orderedItems.length;
-            const warningMessage = isSelectAll 
-                ? `⚠️ 全ての発注中商品（${selectedOrderedItems.size}件）を削除しようとしています。\n\n本当によろしいですか？\n\n削除された商品は発注必要リストに戻ります。`
-                : `選択した${selectedOrderedItems.size}件の発注を削除しますか？\n\n削除された商品は発注必要リストに戻ります。`;
-            
-            if (confirm(warningMessage)) {
-                const deletedItems = [];
-                
-                selectedOrderedItems.forEach(itemId => {
-                    const item = orderedItems.find(item => item.id === itemId);
-                    if (item) {
-                        // 元のデータに戻す
-                        const originalItem = {
-                            id: item.id,
-                            name: item.name,
-                            category: item.category,
-                            currentStock: item.currentStock,
-                            totalSales: 0,
-                            dailyAverage: 0,
-                            reorderPoint: 0,
-                            shortage: 0,
-                            status: 'warning',
-                            leadTime: currentSettings.leadTime,
-                            supplier: item.supplier
-                        };
-                        
-                        inventoryData.push(originalItem);
-                        deletedItems.push(item.name);
-                    }
-                });
-                
-                // 発注中から削除
-                orderedItems = orderedItems.filter(item => !selectedOrderedItems.has(item.id));
-                selectedOrderedItems.clear();
-                
-                updateSummaryCards();
-                updateTables();
-                
-                alert(`${deletedItems.length}件の発注を削除しました！\n\n削除商品:\n${deletedItems.join('\n')}`);
-            }
-        }
-
-        // 発注済みマーク（旧関数 - 互換性のため残す）
-        function markAsOrdered(productId) {
-            const item = inventoryData.find(item => item.id === productId);
-            if (item) {
-                const orderQuantity = prompt('発注数を入力してください:', item.shortage);
-                if (orderQuantity && parseInt(orderQuantity) > 0) {
-                    // 発注中リストに追加
-                    orderedItems.push({
-                        id: item.id,
-                        name: item.name,
-                        category: item.category,
-                        currentStock: item.currentStock,
-                        orderedQuantity: parseInt(orderQuantity),
-                        orderDate: new Date().toISOString().split('T')[0],
-                        expectedDelivery: new Date(Date.now() + item.leadTime * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                        status: 'ordered',
-                        supplier: item.supplier
-                    });
-
-                    // 元のデータから削除
-                    inventoryData = inventoryData.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    alert('発注済みとしてマークしました！');
-                }
-            }
-        }
-
-        // 発注キャンセル（旧関数 - 互換性のため残す）
-        function cancelOrder(productId) {
-            if (confirm('発注をキャンセルしますか？')) {
-                const item = orderedItems.find(item => item.id === productId);
-                if (item) {
-                    // 元のデータに戻す（サンプルなので簡略化）
-                    orderedItems = orderedItems.filter(i => i.id !== productId);
-                    
-                    updateSummaryCards();
-                    updateTables();
-                    alert('発注をキャンセルしました！');
-                }
-            }
-        }
-
-        // 商品詳細表示
-        function showProductDetail(productId) {
-            const item = inventoryData.find(item => item.id === productId);
-            if (item) {
-                alert(`商品詳細\n\n商品コード: ${item.id}\n商品名: ${item.name}\nカテゴリ: ${item.category}\n現在在庫: ${item.currentStock}\n発注点: ${item.reorderPoint}\n日平均販売: ${item.dailyAverage}\n仕入先: ${item.supplier}`);
-            }
-        }
-
-        // クリップボードにコピー
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(function() {
-                // 単発コピーの場合のみ通知
-                if (!text.includes('\n')) {
-                    showCopyNotification();
-                }
-            }).catch(function() {
-                // フォールバック方法
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                // 単発コピーの場合のみ通知
-                if (!text.includes('\n')) {
-                    showCopyNotification();
-                }
-            });
-        }
-
-        // コピー通知を表示
-        function showCopyNotification(message = 'コピーしました！') {
-            const notification = document.getElementById('copyNotification');
-            notification.textContent = message;
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 2000);
-        }
-
-        // 発注必要商品の全品番をコピー
-        function copyAllReorderCodes() {
-            const reorderItems = inventoryData.filter(item => item.needsReorder);
-            if (reorderItems.length === 0) {
-                alert('発注が必要な商品がありません。');
-                return;
-            }
-            
-            const codes = reorderItems.map(item => item.id);
-            const codesText = codes.join('\n'); // 改行区切りで結合
-            
-            copyToClipboard(codesText);
-            showCopyNotification(`${codes.length}件の品番をコピーしました！`);
-        }
-
-        // 発注中商品の全品番をコピー
-        function copyAllOrderedCodes() {
-            if (orderedItems.length === 0) {
-                alert('発注中の商品がありません。');
-                return;
-            }
-            
-            const codes = orderedItems.map(item => item.id);
-            const codesText = codes.join('\n'); // 改行区切りで結合
-            
-            copyToClipboard(codesText);
-            showCopyNotification(`${codes.length}件の品番をコピーしました！`);
-        }
-
-        // 現在のタブの全品番をコピー
-        function copyAllCurrentTabCodes() {
-            let items = [];
-            let tabName = '';
-            
-            if (currentTab === 'reorder') {
-                items = inventoryData.filter(item => item.needsReorder);
-                tabName = '発注必要';
-            } else if (currentTab === 'ordered') {
-                items = orderedItems;
-                tabName = '発注中';
-            } else if (currentTab === 'onhold') {
-                items = onHoldItems;
-                tabName = '発注停止中';
-            } else if (currentTab === 'all') {
-                items = inventoryData;
-                tabName = '全商品';
-            }
-            
-            if (items.length === 0) {
-                alert('表示する商品がありません。');
-                return;
-            }
-            
-            const codes = items.map(item => item.id);
-            const codesText = codes.join('\n'); // 改行区切りで結合
-            
-            copyToClipboard(codesText);
-            showCopyNotification(`${tabName}の品番 ${codes.length}件をコピーしました！`);
-        }
-
-        // 選択商品の品番をコピー
-        function copySelectedCodes() {
-            let selectedItems = [];
-            
-            if (currentTab === 'reorder') {
-                selectedItems = inventoryData.filter(item => selectedReorderItems.has(item.id));
-            } else if (currentTab === 'ordered') {
-                selectedItems = orderedItems.filter(item => selectedOrderedItems.has(item.id));
-            } else if (currentTab === 'onhold') {
-                selectedItems = onHoldItems.filter(item => selectedOnHoldItems.has(item.id));
-            }
-            
-            if (selectedItems.length === 0) {
-                alert('商品を選択してください。');
-                return;
-            }
-            
-            const codes = selectedItems.map(item => item.id);
-            const codesText = codes.join('\n'); // 改行区切りで結合
-            
-            copyToClipboard(codesText);
-            showCopyNotification(`選択した品番 ${codes.length}件をコピーしました！`);
-        }
-
-        // カテゴリフィルター更新
-        function updateCategoryFilter() {
-            const categories = [...new Set(inventoryData.map(item => item.category))];
-            const select = document.getElementById('categoryFilter');
-            select.innerHTML = '<option value="">全カテゴリ</option>' + 
-                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-        }
-
-        // テーブルフィルター（簡略版）
-        function filterTable() {
-            // 実装省略 - 実際のプロジェクトで詳細実装
-            console.log('フィルタリング中...');
-        }
-
-        function filterByCategory() {
-            // 実装省略 - 実際のプロジェクトで詳細実装
-            console.log('カテゴリフィルタリング中...');
-        }
-
-        // Googleスプレッドシート連携関数
-        async function syncFromSpreadsheet() {
-            if (!currentSettings.googleScriptUrl) {
-                alert('Google Apps Script URLが設定されていません。設定画面で設定してください。');
-                return;
-            }
-
-            try {
-                // 在庫データを取得
-                const inventoryResponse = await fetch(currentSettings.googleScriptUrl + '?action=getInventory');
-                const inventoryData = await inventoryResponse.json();
-
-                // 販売データを取得
-                const salesResponse = await fetch(currentSettings.googleScriptUrl + '?action=getSales');
-                const salesData = await salesResponse.json();
-
-                uploadedInventoryData = inventoryData;
-                uploadedSalesData = salesData;
-
-                // ステータス更新
-                document.getElementById('inventoryStatus').textContent = `✅ ${inventoryData.length}件読み込み`;
-                document.getElementById('inventoryStatus').className = 'status-badge status-uploaded';
-                document.getElementById('salesStatus').textContent = `✅ ${salesData.length}件読み込み`;
-                document.getElementById('salesStatus').className = 'status-badge status-uploaded';
-
-                checkCalculateButtonState();
-                alert('スプレッドシートからデータを取得しました！');
-            } catch (error) {
-                alert('スプレッドシートからのデータ取得に失敗しました: ' + error.message);
-            }
-        }
-
-        async function syncToSpreadsheet() {
-            if (!currentSettings.googleScriptUrl) {
-                alert('Google Apps Script URLが設定されていません。');
-                return;
-            }
-
-            if (!inventoryData.length) {
-                alert('保存するデータがありません。');
-                return;
-            }
-
-            try {
-                // 在庫データを保存
-                const response = await fetch(currentSettings.googleScriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'updateInventory',
-                        data: inventoryData
-                    })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('スプレッドシートにデータを保存しました！');
-                } else {
-                    alert('保存に失敗しました: ' + result.message);
-                }
-            } catch (error) {
-                alert('スプレッドシートへの保存に失敗しました: ' + error.message);
-            }
-        }
-
-        // モーダル外をクリックしたら閉じる
-        window.addEventListener('click', function(e) {
-            const settingsModal = document.getElementById('settingsModal');
-            const orderModal = document.getElementById('orderModal');
-            
-            if (e.target === settingsModal) {
-                closeSettings();
-            }
-            if (e.target === orderModal) {
-                closeOrderModal();
-            }
-        });
-    </script>
-</body>
-</html>
+                            <span class="product-code" onclick="copyToClipboard('${item.id}')" title="
