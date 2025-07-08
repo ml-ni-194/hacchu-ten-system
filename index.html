@@ -781,8 +781,145 @@
             transition: background 0.3s;
         }
 
+        .bulk-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .bulk-textarea:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+
+        .bulk-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .bulk-preview h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .bulk-preview .preview-item {
+            display: inline-block;
+            background: #e8f4f8;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid #bce8f1;
+        }
+
+        .bulk-preview .duplicate-item {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .bulk-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .bulk-stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .bulk-stats .stat-new {
+            color: #27ae60;
+        }
+
+        .bulk-stats .stat-duplicate {
+            color: #e74c3c;
+        }
+
         .btn-add:hover {
             background: #219a52;
+        }
+
+        .bulk-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .bulk-textarea:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+
+        .bulk-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .bulk-preview h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .bulk-preview .preview-item {
+            display: inline-block;
+            background: #e8f4f8;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid #bce8f1;
+        }
+
+        .bulk-preview .duplicate-item {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .bulk-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .bulk-stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .bulk-stats .stat-new {
+            color: #27ae60;
+        }
+
+        .bulk-stats .stat-duplicate {
+            color: #e74c3c;
+        }
+
+        .bulk-stats .stat-total {
+            color: #2c3e50;
+            font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -948,6 +1085,7 @@
                     </div>
                     <div class="action-controls">
                         <button class="btn btn-add btn-sm" onclick="showAddOrderModal()">➕ 手動追加</button>
+                        <button class="btn btn-add btn-sm" onclick="showBulkAddModal()">📋 一括追加</button>
                         <button class="btn btn-success btn-sm" onclick="completeSelectedOrders()" id="completeOrdersBtn" disabled>選択商品を入荷完了</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteSelectedOrders()" id="deleteOrdersBtn" disabled>選択商品を削除</button>
                     </div>
@@ -1053,6 +1191,68 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 一括追加モーダル -->
+    <div id="bulkAddModal" class="add-modal">
+        <div class="add-modal-content" style="max-width: 700px;">
+            <div class="add-modal-header">
+                <h2>📋 発注商品を一括追加</h2>
+                <span class="close" onclick="closeBulkAddModal()" style="position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer;">&times;</span>
+            </div>
+            <div class="add-modal-body">
+                <div class="add-form-group">
+                    <label for="bulkProductCodes">商品コード一覧 <span class="required">*</span></label>
+                    <textarea id="bulkProductCodes" class="bulk-textarea" placeholder="商品コードを改行区切りで入力してください&#13;&#10;例：&#13;&#10;P001&#13;&#10;P002&#13;&#10;P003" oninput="updateBulkPreview()"></textarea>
+                    <small>商品コードを1行に1つずつ入力してください。コピー&ペーストも可能です。</small>
+                </div>
+                
+                <div id="bulkPreview" class="bulk-preview" style="display: none;">
+                    <h4>📋 追加予定の商品</h4>
+                    <div id="bulkPreviewItems"></div>
+                    <div class="bulk-stats">
+                        <div class="stat-item stat-total">
+                            <span>📝 合計:</span>
+                            <span id="bulkTotalCount">0</span>
+                        </div>
+                        <div class="stat-item stat-new">
+                            <span>✅ 新規:</span>
+                            <span id="bulkNewCount">0</span>
+                        </div>
+                        <div class="stat-item stat-duplicate">
+                            <span>⚠️ 重複:</span>
+                            <span id="bulkDuplicateCount">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="add-form-group">
+                    <label for="bulkStore">店舗（全商品共通）</label>
+                    <select id="bulkStore">
+                        <option value="">店舗を選択してください</option>
+                    </select>
+                </div>
+                
+                <div class="add-form-group">
+                    <label for="bulkOrderQuantity">発注数（全商品共通）</label>
+                    <input type="number" id="bulkOrderQuantity" placeholder="発注数を入力してください" min="1" value="1">
+                </div>
+                
+                <div class="add-form-group">
+                    <label for="bulkExpectedDelivery">予定納期（全商品共通）</label>
+                    <input type="date" id="bulkExpectedDelivery">
+                </div>
+                
+                <div class="add-form-group">
+                    <label for="bulkOrderStatus">ステータス（全商品共通）</label>
+                    <input type="text" id="bulkOrderStatus" placeholder="ステータスを入力してください" value="発注中">
+                </div>
+            </div>
+            <div class="add-modal-footer">
+                <button class="btn" onclick="closeBulkAddModal()">キャンセル</button>
+                <button class="btn btn-success" onclick="addOrdersBulk()" id="bulkAddBtn" disabled>一括追加</button>
             </div>
         </div>
     </div>
@@ -2071,6 +2271,180 @@ P003,マウス 無線,名古屋店,10`;
             document.getElementById('deleteOnHoldBtn').disabled = selectedOnHoldItems.size === 0;
         }
 
+        // 一括追加モーダル機能
+        function showBulkAddModal() {
+            // 店舗オプションを設定
+            populateBulkStoreOptions();
+            
+            // 予定納期をデフォルト値で設定（7日後）
+            const deliveryDate = new Date();
+            deliveryDate.setDate(deliveryDate.getDate() + 7);
+            document.getElementById('bulkExpectedDelivery').value = deliveryDate.toISOString().split('T')[0];
+            
+            // モーダルを表示
+            document.getElementById('bulkAddModal').style.display = 'block';
+            
+            // テキストエリアにフォーカス
+            setTimeout(() => {
+                document.getElementById('bulkProductCodes').focus();
+            }, 100);
+        }
+
+        function closeBulkAddModal() {
+            document.getElementById('bulkAddModal').style.display = 'none';
+            
+            // フォームをリセット
+            document.getElementById('bulkProductCodes').value = '';
+            document.getElementById('bulkStore').value = '';
+            document.getElementById('bulkOrderQuantity').value = '1';
+            document.getElementById('bulkOrderStatus').value = '発注中';
+            document.getElementById('bulkPreview').style.display = 'none';
+            document.getElementById('bulkAddBtn').disabled = true;
+        }
+
+        function populateBulkStoreOptions() {
+            const storeSelect = document.getElementById('bulkStore');
+            const stores = [...new Set(inventoryData.map(item => item.category))];
+            
+            storeSelect.innerHTML = '<option value="">店舗を選択してください</option>' + 
+                stores.map(store => `<option value="${store}">${store}</option>`).join('');
+        }
+
+        function updateBulkPreview() {
+            const textarea = document.getElementById('bulkProductCodes');
+            const preview = document.getElementById('bulkPreview');
+            const previewItems = document.getElementById('bulkPreviewItems');
+            const addBtn = document.getElementById('bulkAddBtn');
+            
+            // 入力されたコードを解析
+            const inputText = textarea.value.trim();
+            if (!inputText) {
+                preview.style.display = 'none';
+                addBtn.disabled = true;
+                return;
+            }
+            
+            // 改行区切りで分割し、空行と重複を除去
+            const codes = inputText.split('\n')
+                .map(code => code.trim())
+                .filter(code => code.length > 0);
+            
+            const uniqueCodes = [...new Set(codes)];
+            
+            // 既存の発注中アイテムとの重複チェック
+            const existingCodes = new Set(orderedItems.map(item => item.id));
+            const newCodes = uniqueCodes.filter(code => !existingCodes.has(code));
+            const duplicateCodes = uniqueCodes.filter(code => existingCodes.has(code));
+            
+            // プレビュー表示
+            previewItems.innerHTML = '';
+            
+            // 新規コードを表示
+            newCodes.forEach(code => {
+                const item = document.createElement('span');
+                item.className = 'preview-item';
+                item.textContent = code;
+                previewItems.appendChild(item);
+            });
+            
+            // 重複コードを表示
+            duplicateCodes.forEach(code => {
+                const item = document.createElement('span');
+                item.className = 'preview-item duplicate-item';
+                item.textContent = code + ' (重複)';
+                previewItems.appendChild(item);
+            });
+            
+            // 統計情報を更新
+            document.getElementById('bulkTotalCount').textContent = uniqueCodes.length;
+            document.getElementById('bulkNewCount').textContent = newCodes.length;
+            document.getElementById('bulkDuplicateCount').textContent = duplicateCodes.length;
+            
+            // プレビューを表示
+            preview.style.display = 'block';
+            
+            // 追加ボタンの状態を更新
+            addBtn.disabled = newCodes.length === 0;
+        }
+
+        function addOrdersBulk() {
+            const textarea = document.getElementById('bulkProductCodes');
+            const store = document.getElementById('bulkStore').value || '未設定';
+            const orderQuantity = parseInt(document.getElementById('bulkOrderQuantity').value) || 1;
+            const expectedDelivery = document.getElementById('bulkExpectedDelivery').value;
+            const orderStatus = document.getElementById('bulkOrderStatus').value.trim() || '発注中';
+            
+            // 入力されたコードを解析
+            const inputText = textarea.value.trim();
+            if (!inputText) {
+                alert('商品コードを入力してください。');
+                return;
+            }
+            
+            // 改行区切りで分割し、空行と重複を除去
+            const codes = inputText.split('\n')
+                .map(code => code.trim())
+                .filter(code => code.length > 0);
+            
+            const uniqueCodes = [...new Set(codes)];
+            
+            // 既存の発注中アイテムとの重複チェック
+            const existingCodes = new Set(orderedItems.map(item => item.id));
+            const newCodes = uniqueCodes.filter(code => !existingCodes.has(code));
+            
+            if (newCodes.length === 0) {
+                alert('追加できる新しい商品コードがありません。');
+                return;
+            }
+            
+            // 確認ダイアログ
+            const duplicateCount = uniqueCodes.length - newCodes.length;
+            let message = `${newCodes.length}件の商品を一括追加しますか？`;
+            if (duplicateCount > 0) {
+                message += `\n\n※ ${duplicateCount}件の重複商品は追加されません。`;
+            }
+            
+            if (!confirm(message)) {
+                return;
+            }
+            
+            // 発注アイテムを一括追加
+            const today = new Date();
+            const addedItems = [];
+            
+            newCodes.forEach(code => {
+                const newOrderItem = {
+                    id: code,
+                    name: '一括追加商品',
+                    category: store,
+                    currentStock: 0, // 一括追加のため不明
+                    orderedQuantity: orderQuantity,
+                    orderDate: today.toISOString().split('T')[0],
+                    expectedDelivery: expectedDelivery || today.toISOString().split('T')[0],
+                    status: 'ordered',
+                    orderStatus: orderStatus,
+                    supplier: '一括追加',
+                    isManuallyAdded: true // 手動追加フラグ
+                };
+                
+                orderedItems.push(newOrderItem);
+                addedItems.push(newOrderItem);
+            });
+            
+            // データを保存
+            saveToLocalStorage();
+            
+            // 画面を更新
+            updateSummaryCards();
+            updateTables();
+            
+            // モーダルを閉じる
+            closeBulkAddModal();
+            
+            // 通知を表示
+            showNotification(`${addedItems.length}件の商品を一括追加しました`);
+        }
+
         // 手動追加モーダル機能
         function showAddOrderModal() {
             // 店舗オプションを設定
@@ -2260,8 +2634,12 @@ P003,マウス 無線,名古屋店,10`;
         // モーダル外クリックで閉じる
         window.onclick = function(event) {
             const addModal = document.getElementById('addOrderModal');
+            const bulkModal = document.getElementById('bulkAddModal');
+            
             if (event.target == addModal) {
                 closeAddOrderModal();
+            } else if (event.target == bulkModal) {
+                closeBulkAddModal();
             }
         };
 
