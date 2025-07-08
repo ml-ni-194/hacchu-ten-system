@@ -1838,19 +1838,21 @@
                     apiAction = 'deleteOnHold';
                 }
                 
-                const response = await fetch(currentSettings.spreadsheetUrl, {
+                fetch(currentSettings.spreadsheetUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: `action=${apiAction}&data=${encodeURIComponent(JSON.stringify(data))}`
+                }).then(response => {
+                    if (response.ok) {
+                        console.log(`Synced ${action} for ${item.id}`);
+                    } else {
+                        console.error(`Failed to sync ${action} for ${item.id}`);
+                    }
+                }).catch(error => {
+                    console.error('Sync item failed:', error);
                 });
-                
-                if (response.ok) {
-                    console.log(`Synced ${action} for ${item.id}`);
-                } else {
-                    console.error(`Failed to sync ${action} for ${item.id}`);
-                }
             } catch (error) {
                 console.error('Sync item failed:', error);
             }
@@ -3180,7 +3182,7 @@ P003,マウス 無線,名古屋店,10`;
                     const deliveryDate = new Date(today);
                     deliveryDate.setDate(today.getDate() + item.leadTime);
                     
-                    orderedItems.push({
+                    const orderItem = {
                         id: item.id,
                         name: item.name,
                         category: item.category,
@@ -3191,12 +3193,13 @@ P003,マウス 無線,名古屋店,10`;
                         status: 'ordered',
                         orderStatus: '発注中',
                         supplier: item.supplier
-                    });
+                    };
                     
+                    orderedItems.push(orderItem);
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     
-                    // スプレッドシートに同期
-                    await syncItemToSpreadsheet(item, 'addOrdered');
+                    // スプレッドシートに同期（非同期）
+                    syncItemToSpreadsheet(orderItem, 'addOrdered');
                     
                     updateSummaryCards();
                     updateTables();
@@ -3211,7 +3214,7 @@ P003,マウス 無線,名古屋店,10`;
             if (item) {
                 const reason = prompt(`${item.name}の発注停止理由を入力してください:`, '');
                 if (reason !== null) {
-                    onHoldItems.push({
+                    const onHoldItem = {
                         id: item.id,
                         name: item.name,
                         category: item.category,
@@ -3221,12 +3224,13 @@ P003,マウス 無線,名古屋店,10`;
                         status: 'on-hold',
                         supplier: item.supplier,
                         reason: reason
-                    });
+                    };
                     
+                    onHoldItems.push(onHoldItem);
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     
-                    // スプレッドシートに同期
-                    await syncItemToSpreadsheet(item, 'addOnHold');
+                    // スプレッドシートに同期（非同期）
+                    syncItemToSpreadsheet(onHoldItem, 'addOnHold');
                     
                     updateSummaryCards();
                     updateTables();
@@ -3264,7 +3268,7 @@ P003,マウス 無線,名古屋店,10`;
                     
                     orderedItems.push(orderItem);
                     
-                    // スプレッドシートに同期
+                    // スプレッドシートに同期（非同期）
                     syncItemToSpreadsheet(orderItem, 'addOrdered');
                 });
                 
@@ -3283,10 +3287,10 @@ P003,マウス 無線,名古屋店,10`;
             if (confirm(`選択した${selectedOrderedItems.size}件の発注を完了しますか？`)) {
                 const itemsToDelete = orderedItems.filter(item => selectedOrderedItems.has(item.id));
                 
-                // スプレッドシートから削除
-                for (const item of itemsToDelete) {
-                    await syncItemToSpreadsheet(item, 'deleteOrdered');
-                }
+                // スプレッドシートから削除（非同期）
+                itemsToDelete.forEach(item => {
+                    syncItemToSpreadsheet(item, 'deleteOrdered');
+                });
                 
                 orderedItems = orderedItems.filter(item => !selectedOrderedItems.has(item.id));
                 selectedOrderedItems.clear();
