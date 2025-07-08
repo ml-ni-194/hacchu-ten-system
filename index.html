@@ -1132,6 +1132,7 @@
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-success" onclick="calculateReorderPoints()" id="calculateBtn">📊 発注点を計算</button>
                 <button class="btn btn-sync" onclick="syncWithSpreadsheet()" id="syncBtn">🔄 スプレッドシート同期</button>
+                <button class="btn" onclick="showSettings()">⚙️ 設定</button>
                 <button class="btn" onclick="downloadSampleCSV()">📥 サンプルCSVダウンロード</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ 全データ削除</button>
             </div>
@@ -1343,6 +1344,11 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- 同期インジケーター -->
+    <div id="syncIndicator" class="sync-indicator">
+        同期中...
     </div>
 
     <!-- 一括追加モーダル -->
@@ -2895,6 +2901,9 @@ P003,マウス 無線,名古屋店,10`;
                 
                 orderedItems.push(newOrderItem);
                 addedItems.push(newOrderItem);
+                
+                // スプレッドシートに同期
+                syncItemToSpreadsheet(newOrderItem, 'addOrdered');
             });
             
             // データを保存
@@ -3185,6 +3194,10 @@ P003,マウス 無線,名古屋店,10`;
                     });
                     
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
+                    
+                    // スプレッドシートに同期
+                    await syncItemToSpreadsheet(item, 'addOrdered');
+                    
                     updateSummaryCards();
                     updateTables();
                     saveToLocalStorage();
@@ -3211,6 +3224,10 @@ P003,マウス 無線,名古屋店,10`;
                     });
                     
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
+                    
+                    // スプレッドシートに同期
+                    await syncItemToSpreadsheet(item, 'addOnHold');
+                    
                     updateSummaryCards();
                     updateTables();
                     saveToLocalStorage();
@@ -3232,7 +3249,7 @@ P003,マウス 無線,名古屋店,10`;
                     const deliveryDate = new Date(today);
                     deliveryDate.setDate(today.getDate() + item.leadTime);
                     
-                    orderedItems.push({
+                    const orderItem = {
                         id: item.id,
                         name: item.name,
                         category: item.category,
@@ -3243,7 +3260,12 @@ P003,マウス 無線,名古屋店,10`;
                         status: 'ordered',
                         orderStatus: '発注中',
                         supplier: item.supplier
-                    });
+                    };
+                    
+                    orderedItems.push(orderItem);
+                    
+                    // スプレッドシートに同期
+                    syncItemToSpreadsheet(orderItem, 'addOrdered');
                 });
                 
                 inventoryData = inventoryData.filter(item => !selectedReorderItems.has(item.id));
@@ -3259,6 +3281,13 @@ P003,マウス 無線,名古屋店,10`;
             if (selectedOrderedItems.size === 0) return;
             
             if (confirm(`選択した${selectedOrderedItems.size}件の発注を完了しますか？`)) {
+                const itemsToDelete = orderedItems.filter(item => selectedOrderedItems.has(item.id));
+                
+                // スプレッドシートから削除
+                for (const item of itemsToDelete) {
+                    await syncItemToSpreadsheet(item, 'deleteOrdered');
+                }
+                
                 orderedItems = orderedItems.filter(item => !selectedOrderedItems.has(item.id));
                 selectedOrderedItems.clear();
                 updateSummaryCards();
@@ -3273,6 +3302,12 @@ P003,マウス 無線,名古屋店,10`;
             
             if (confirm(`選択した${selectedOrderedItems.size}件の発注を削除しますか？`)) {
                 const deletedItems = orderedItems.filter(item => selectedOrderedItems.has(item.id));
+                
+                // スプレッドシートから削除
+                for (const item of deletedItems) {
+                    await syncItemToSpreadsheet(item, 'deleteOrdered');
+                }
+                
                 orderedItems = orderedItems.filter(item => !selectedOrderedItems.has(item.id));
                 
                 deletedItems.forEach(item => {
@@ -3306,6 +3341,12 @@ P003,マウス 無線,名古屋店,10`;
             
             if (confirm(`選択した${selectedOnHoldItems.size}件の発注を再開しますか？`)) {
                 const resumedItems = onHoldItems.filter(item => selectedOnHoldItems.has(item.id));
+                
+                // スプレッドシートから削除
+                for (const item of resumedItems) {
+                    await syncItemToSpreadsheet(item, 'deleteOnHold');
+                }
+                
                 onHoldItems = onHoldItems.filter(item => !selectedOnHoldItems.has(item.id));
                 
                 resumedItems.forEach(item => {
@@ -3338,6 +3379,13 @@ P003,マウス 無線,名古屋店,10`;
             if (selectedOnHoldItems.size === 0) return;
             
             if (confirm(`選択した${selectedOnHoldItems.size}件を完全に削除しますか？`)) {
+                const itemsToDelete = onHoldItems.filter(item => selectedOnHoldItems.has(item.id));
+                
+                // スプレッドシートから削除
+                for (const item of itemsToDelete) {
+                    await syncItemToSpreadsheet(item, 'deleteOnHold');
+                }
+                
                 onHoldItems = onHoldItems.filter(item => !selectedOnHoldItems.has(item.id));
                 selectedOnHoldItems.clear();
                 updateSummaryCards();
@@ -3350,6 +3398,9 @@ P003,マウス 無線,名古屋店,10`;
         function completeOrder(itemId) {
             const item = orderedItems.find(i => i.id === itemId);
             if (item && confirm(`${item.name}の発注を完了しますか？`)) {
+                // スプレッドシートから削除
+                syncItemToSpreadsheet(item, 'deleteOrdered');
+                
                 orderedItems = orderedItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
@@ -3361,6 +3412,9 @@ P003,マウス 無線,名古屋店,10`;
         function cancelOrder(itemId) {
             const item = orderedItems.find(i => i.id === itemId);
             if (item && confirm(`${item.name}の発注をキャンセルしますか？`)) {
+                // スプレッドシートから削除
+                syncItemToSpreadsheet(item, 'deleteOrdered');
+                
                 orderedItems = orderedItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
@@ -3372,6 +3426,9 @@ P003,マウス 無線,名古屋店,10`;
         function resumeOrder(itemId) {
             const item = onHoldItems.find(i => i.id === itemId);
             if (item && confirm(`${item.name}の発注を再開しますか？`)) {
+                // スプレッドシートから削除
+                syncItemToSpreadsheet(item, 'deleteOnHold');
+                
                 onHoldItems = onHoldItems.filter(i => i.id !== itemId);
                 
                 const inventoryItem = {
@@ -3400,6 +3457,9 @@ P003,マウス 無線,名古屋店,10`;
         function deleteOnHoldItem(itemId) {
             const item = onHoldItems.find(i => i.id === itemId);
             if (item && confirm(`${item.name}を完全に削除しますか？`)) {
+                // スプレッドシートから削除
+                syncItemToSpreadsheet(item, 'deleteOnHold');
+                
                 onHoldItems = onHoldItems.filter(i => i.id !== itemId);
                 updateSummaryCards();
                 updateTables();
