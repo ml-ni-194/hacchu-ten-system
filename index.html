@@ -1131,8 +1131,8 @@
             </div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-success" onclick="calculateReorderPoints()" id="calculateBtn">📊 発注点を計算</button>
-                <button class="btn btn-sync" onclick="syncWithSpreadsheet()" id="syncBtn">🔄 スプレッドシート同期</button>
-                <button class="btn btn-sync" onclick="testSpreadsheetConnection()">🔍 接続テスト</button>
+                <button class="btn btn-sync" onclick="manualSync()">🔄 スプレッドシート同期</button>
+                <button class="btn btn-sync" onclick="testConnection()">🔍 接続テスト</button>
                 <button class="btn" onclick="downloadSampleCSV()">📥 サンプルCSVダウンロード</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ 全データ削除</button>
             </div>
@@ -3223,7 +3223,7 @@ P003,マウス 無線,名古屋店,10`;
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     
                     // スプレッドシートに同期（非同期）
-                    syncItemToSpreadsheet(orderItem, 'addOrdered');
+                    syncToSheet(orderItem, 'addOrdered');
                     
                     updateSummaryCards();
                     updateTables();
@@ -3254,7 +3254,7 @@ P003,マウス 無線,名古屋店,10`;
                     inventoryData = inventoryData.filter(i => i.id !== itemId);
                     
                     // スプレッドシートに同期（非同期）
-                    syncItemToSpreadsheet(onHoldItem, 'addOnHold');
+                    syncToSheet(onHoldItem, 'addOnHold');
                     
                     updateSummaryCards();
                     updateTables();
