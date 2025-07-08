@@ -1553,6 +1553,59 @@
             }
         }
 
+        // 接続テスト関数
+        function testSpreadsheetConnection() {
+            const url = currentSettings.spreadsheetUrl;
+            
+            if (!url) {
+                alert('WebアプリURLが設定されていません。');
+                return;
+            }
+            
+            showSyncIndicator('🔍 接続テスト中...', 'info');
+            showNotification('スプレッドシートに接続しています...');
+            
+            fetch(url, {
+                method: 'GET',
+                mode: 'cors'
+            }).then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            }).then(text => {
+                if (text.includes('在庫管理システム連携用GAS')) {
+                    showSyncIndicator('✅ 接続成功！', 'success');
+                    showNotification('スプレッドシートへの接続に成功しました');
+                } else {
+                    showSyncIndicator('❌ 接続エラー：正しいGASではありません', 'error');
+                    showNotification('接続できましたが、正しいGASスクリプトではないようです', 'error');
+                }
+            }).catch(error => {
+                console.error('Connection test failed:', error);
+                showSyncIndicator('❌ 接続エラー：' + error.message, 'error');
+                showNotification('スプレッドシートへの接続に失敗しました: ' + error.message, 'error');
+            });
+        }
+
+        // 手動同期関数
+        function syncWithSpreadsheet() {
+            if (!currentSettings.spreadsheetUrl) {
+                showNotification('スプレッドシートURLが設定されていません', 'error');
+                return;
+            }
+            
+            if (confirm('スプレッドシートと同期しますか？\n\n📥 スプレッドシートからデータを取得し、\n📤 現在のデータもスプレッドシートに保存します。')) {
+                syncFromSpreadsheet().then(() => {
+                    // 少し待ってから保存
+                    setTimeout(() => {
+                        syncToSpreadsheet();
+                    }, 1000);
+                });
+            }
+        }
+
         // Googleスプレッドシート連携機能
         function updateSyncStatus() {
             const statusElement = document.getElementById('syncStatus');
@@ -1581,39 +1634,7 @@
             }
         }
 
-        function testSpreadsheetConnection() {
-            const url = currentSettings.spreadsheetUrl;
-            
-            if (!url) {
-                alert('WebアプリURLが設定されていません。');
-                return;
-            }
-            
-            showSyncIndicator('🔍 接続テスト中...', 'info');
-            
-            fetch(url, {
-                method: 'GET',
-                mode: 'cors'
-            }).then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            }).then(text => {
-                if (text.includes('在庫管理システム連携用GAS')) {
-                    showSyncIndicator('✅ 接続成功！', 'success');
-                    showNotification('スプレッドシートへの接続に成功しました');
-                } else {
-                    showSyncIndicator('❌ 接続エラー：正しいGASではありません', 'error');
-                    showNotification('接続できましたが、正しいGASスクリプトではないようです', 'error');
-                }
-            }).catch(error => {
-                console.error('Connection test failed:', error);
-                showSyncIndicator('❌ 接続エラー：' + error.message, 'error');
-                showNotification('スプレッドシートへの接続に失敗しました: ' + error.message, 'error');
-            });
-        }
+        // Googleスプレッドシート連携機能
 
         async function syncFromSpreadsheet() {
             if (!currentSettings.spreadsheetUrl) {
