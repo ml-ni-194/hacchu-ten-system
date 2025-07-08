@@ -1132,7 +1132,7 @@
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-success" onclick="calculateReorderPoints()" id="calculateBtn">📊 発注点を計算</button>
                 <button class="btn btn-sync" onclick="syncWithSpreadsheet()" id="syncBtn">🔄 スプレッドシート同期</button>
-                <button class="btn" onclick="showSettings()">⚙️ 設定</button>
+                <button class="btn btn-sync" onclick="testSpreadsheetConnection()">🔍 接続テスト</button>
                 <button class="btn" onclick="downloadSampleCSV()">📥 サンプルCSVダウンロード</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ 全データ削除</button>
             </div>
@@ -1478,7 +1478,7 @@
             leadTime: 7,
             safetyStock: 3,
             urgentThreshold: 50,
-            spreadsheetUrl: '',
+            spreadsheetUrl: 'https://script.google.com/macros/s/AKfycby2ambL1sh-iY1EEDt0iBMuRswDc_wqXsffOZiq4px5lQ8FHt9L9sv2nmgyV3AXeGeilg/exec',
             autoSync: false,
             syncOnAction: true
         };
@@ -1494,12 +1494,8 @@
             updateCategoryFilter();
             updateSyncStatus();
             
-            // 自動同期が有効な場合、起動時に同期
-            if (currentSettings.autoSync && currentSettings.spreadsheetUrl) {
-                setTimeout(() => {
-                    syncFromSpreadsheet();
-                }, 2000);
-            }
+            // スプレッドシート連携の状態を表示
+            showNotification('スプレッドシート連携が有効です');
         });
 
         // CSVファイル処理
@@ -1562,58 +1558,61 @@
             const statusElement = document.getElementById('syncStatus');
             const statusText = document.getElementById('syncStatusText');
             
-            if (currentSettings.spreadsheetUrl) {
+            if (statusElement && statusText) {
                 statusElement.className = 'sync-status connected';
                 statusText.textContent = 'スプレッドシート連携: 接続中';
-                document.getElementById('syncBtn').disabled = false;
-            } else {
-                statusElement.className = 'sync-status disconnected';
-                statusText.textContent = 'スプレッドシート連携: 未設定';
-                document.getElementById('syncBtn').disabled = true;
+            }
+            
+            const syncBtn = document.getElementById('syncBtn');
+            if (syncBtn) {
+                syncBtn.disabled = false;
             }
         }
 
         function showSyncIndicator(message, type = 'info') {
             const indicator = document.getElementById('syncIndicator');
-            indicator.textContent = message;
-            indicator.className = `sync-indicator ${type} show`;
-            
-            setTimeout(() => {
-                indicator.classList.remove('show');
-            }, 3000);
+            if (indicator) {
+                indicator.textContent = message;
+                indicator.className = `sync-indicator ${type} show`;
+                
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 3000);
+            }
         }
 
-        async function testSpreadsheetConnection() {
-            const url = document.getElementById('spreadsheetUrl').value.trim();
+        function testSpreadsheetConnection() {
+            const url = currentSettings.spreadsheetUrl;
             
             if (!url) {
-                alert('WebアプリURLを入力してください。');
+                alert('WebアプリURLが設定されていません。');
                 return;
             }
             
-            try {
-                showSyncIndicator('🔍 接続テスト中...', 'info');
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
+            showSyncIndicator('🔍 接続テスト中...', 'info');
+            
+            fetch(url, {
+                method: 'GET',
+                mode: 'cors'
+            }).then(response => {
                 if (response.ok) {
-                    const text = await response.text();
-                    if (text.includes('在庫管理システム連携用GAS')) {
-                        showSyncIndicator('✅ 接続成功！', 'success');
-                        showNotification('スプレッドシートへの接続に成功しました');
-                    } else {
-                        showSyncIndicator('❌ 接続エラー：正しいGASではありません', 'error');
-                    }
+                    return response.text();
                 } else {
-                    showSyncIndicator('❌ 接続エラー：' + response.status, 'error');
+                    throw new Error(`HTTP ${response.status}`);
                 }
-            } catch (error) {
+            }).then(text => {
+                if (text.includes('在庫管理システム連携用GAS')) {
+                    showSyncIndicator('✅ 接続成功！', 'success');
+                    showNotification('スプレッドシートへの接続に成功しました');
+                } else {
+                    showSyncIndicator('❌ 接続エラー：正しいGASではありません', 'error');
+                    showNotification('接続できましたが、正しいGASスクリプトではないようです', 'error');
+                }
+            }).catch(error => {
                 console.error('Connection test failed:', error);
                 showSyncIndicator('❌ 接続エラー：' + error.message, 'error');
-            }
+                showNotification('スプレッドシートへの接続に失敗しました: ' + error.message, 'error');
+            });
         }
 
         async function syncFromSpreadsheet() {
@@ -1644,7 +1643,8 @@
                     throw new Error(`発注中データの取得に失敗: ${orderedResponse.status}`);
                 }
                 
-                const orderedData = await orderedResponse.json();
+                const orderedText = await orderedResponse.text();
+                const orderedData = JSON.parse(orderedText);
                 
                 // 発注停止中データを取得
                 const onHoldResponse = await fetch(currentSettings.spreadsheetUrl, {
@@ -1659,7 +1659,8 @@
                     throw new Error(`発注停止中データの取得に失敗: ${onHoldResponse.status}`);
                 }
                 
-                const onHoldData = await onHoldResponse.json();
+                const onHoldText = await onHoldResponse.text();
+                const onHoldData = JSON.parse(onHoldText);
                 
                 // データを変換
                 orderedItems = orderedData.map(item => ({
@@ -1787,18 +1788,20 @@
 
         async function syncWithSpreadsheet() {
             if (!currentSettings.spreadsheetUrl) {
-                showNotification('スプレッドシートURLが設定されていません。設定画面で設定してください。', 'error');
+                showNotification('スプレッドシートURLが設定されていません', 'error');
                 return;
             }
             
             if (confirm('スプレッドシートと同期しますか？\n\n📥 スプレッドシートからデータを取得し、\n📤 現在のデータもスプレッドシートに保存します。')) {
                 await syncFromSpreadsheet();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                await syncToSpreadsheet();
+                // 少し待ってから保存
+                setTimeout(async () => {
+                    await syncToSpreadsheet();
+                }, 1000);
             }
         }
 
-        async function syncItemToSpreadsheet(item, action) {
+        function syncItemToSpreadsheet(item, action) {
             if (!currentSettings.syncOnAction || !currentSettings.spreadsheetUrl) {
                 return;
             }
@@ -1848,7 +1851,7 @@
                     if (response.ok) {
                         console.log(`Synced ${action} for ${item.id}`);
                     } else {
-                        console.error(`Failed to sync ${action} for ${item.id}`);
+                        console.error(`Failed to sync ${action} for ${item.id}`, response.status);
                     }
                 }).catch(error => {
                     console.error('Sync item failed:', error);
