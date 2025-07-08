@@ -1022,7 +1022,7 @@
             <div class="panel-header">
                 <h3 class="panel-title" id="currentTabTitle">発注が必要な商品</h3>
                 <div class="filter-controls">
-                    <input type="text" class="search-box" placeholder="商品名で検索..." onkeyup="filterTable()">
+                    <input type="text" class="search-box" placeholder="商品コード・商品名で検索..." onkeyup="filterTable()">
                     <select onchange="filterByCategory()" id="categoryFilter">
                         <option value="">全店舗</option>
                     </select>
@@ -2029,15 +2029,20 @@
             
             rows.forEach(row => {
                 const productName = row.querySelector('.product-name');
+                const productCode = row.querySelector('.product-code');
                 const categoryCell = currentTab === 'all' ? 
                     row.cells[2] : // 全商品タブでは店舗は3番目
                     row.cells[3];   // 他のタブでは店舗は4番目
                 
-                if (productName && categoryCell) {
+                if (productName && productCode && categoryCell) {
+                    // 商品名と商品コードの両方で検索
                     const nameMatch = productName.textContent.toLowerCase().includes(searchTerm);
+                    const codeMatch = productCode.textContent.toLowerCase().includes(searchTerm);
+                    const searchMatch = nameMatch || codeMatch;
+                    
                     const categoryMatch = !categoryFilter || categoryCell.textContent === categoryFilter;
                     
-                    row.style.display = (nameMatch && categoryMatch) ? '' : 'none';
+                    row.style.display = (searchMatch && categoryMatch) ? '' : 'none';
                 }
             });
         }
