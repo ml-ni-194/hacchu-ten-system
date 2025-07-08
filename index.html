@@ -917,9 +917,154 @@
             color: #e74c3c;
         }
 
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .sync-indicator.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .sync-indicator.error {
+            background: #e74c3c;
+        }
+
+        .sync-indicator.success {
+            background: #27ae60;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        .sync-status.connected {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .sync-status.disconnected {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .sync-status .status-icon {
+            font-size: 16px;
+        }
+
+        .btn-sync {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-sync:hover {
+            background: #138496;
+        }
+
         .bulk-stats .stat-total {
             color: #2c3e50;
             font-weight: bold;
+        }
+
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .sync-indicator.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .sync-indicator.error {
+            background: #e74c3c;
+        }
+
+        .sync-indicator.success {
+            background: #27ae60;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        .sync-status.connected {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .sync-status.disconnected {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .sync-status .status-icon {
+            font-size: 16px;
+        }
+
+        .btn-sync {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-sync:hover {
+            background: #138496;
+        }
+
+        .btn-sync:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
@@ -979,9 +1124,14 @@
                 <div style="font-size: 14px; color: #666; margin-top: 5px;">
                     <span id="lastCalculation">最終計算: 未実行</span>
                 </div>
+                <div class="sync-status" id="syncStatus">
+                    <span class="status-icon">📡</span>
+                    <span id="syncStatusText">スプレッドシート連携: 未設定</span>
+                </div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-success" onclick="calculateReorderPoints()" id="calculateBtn">📊 発注点を計算</button>
+                <button class="btn btn-sync" onclick="syncWithSpreadsheet()" id="syncBtn">🔄 スプレッドシート同期</button>
                 <button class="btn" onclick="downloadSampleCSV()">📥 サンプルCSVダウンロード</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ 全データ削除</button>
             </div>
@@ -1321,10 +1471,14 @@
             analysisWeeks: 2,
             leadTime: 7,
             safetyStock: 3,
-            urgentThreshold: 50
+            urgentThreshold: 50,
+            spreadsheetUrl: '',
+            autoSync: false,
+            syncOnAction: true
         };
         let currentSortColumn = '';
         let currentSortDirection = 'asc';
+        let isSyncing = false;
 
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
@@ -1332,6 +1486,14 @@
             updateLastUpdateTime();
             updateSummaryCards();
             updateCategoryFilter();
+            updateSyncStatus();
+            
+            // 自動同期が有効な場合、起動時に同期
+            if (currentSettings.autoSync && currentSettings.spreadsheetUrl) {
+                setTimeout(() => {
+                    syncFromSpreadsheet();
+                }, 2000);
+            }
         });
 
         // CSVファイル処理
@@ -1386,6 +1548,305 @@
                     }
                 };
                 reader.readAsText(file, 'shift_jis');
+            }
+        }
+
+        // Googleスプレッドシート連携機能
+        function updateSyncStatus() {
+            const statusElement = document.getElementById('syncStatus');
+            const statusText = document.getElementById('syncStatusText');
+            
+            if (currentSettings.spreadsheetUrl) {
+                statusElement.className = 'sync-status connected';
+                statusText.textContent = 'スプレッドシート連携: 接続中';
+                document.getElementById('syncBtn').disabled = false;
+            } else {
+                statusElement.className = 'sync-status disconnected';
+                statusText.textContent = 'スプレッドシート連携: 未設定';
+                document.getElementById('syncBtn').disabled = true;
+            }
+        }
+
+        function showSyncIndicator(message, type = 'info') {
+            const indicator = document.getElementById('syncIndicator');
+            indicator.textContent = message;
+            indicator.className = `sync-indicator ${type} show`;
+            
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
+        async function testSpreadsheetConnection() {
+            const url = document.getElementById('spreadsheetUrl').value.trim();
+            
+            if (!url) {
+                alert('WebアプリURLを入力してください。');
+                return;
+            }
+            
+            try {
+                showSyncIndicator('🔍 接続テスト中...', 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text.includes('在庫管理システム連携用GAS')) {
+                        showSyncIndicator('✅ 接続成功！', 'success');
+                        showNotification('スプレッドシートへの接続に成功しました');
+                    } else {
+                        showSyncIndicator('❌ 接続エラー：正しいGASではありません', 'error');
+                    }
+                } else {
+                    showSyncIndicator('❌ 接続エラー：' + response.status, 'error');
+                }
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                showSyncIndicator('❌ 接続エラー：' + error.message, 'error');
+            }
+        }
+
+        async function syncFromSpreadsheet() {
+            if (!currentSettings.spreadsheetUrl) {
+                showNotification('スプレッドシートURLが設定されていません', 'error');
+                return;
+            }
+            
+            if (isSyncing) {
+                showNotification('既に同期中です', 'error');
+                return;
+            }
+            
+            isSyncing = true;
+            showSyncIndicator('📥 スプレッドシートから取得中...', 'info');
+            
+            try {
+                // 発注中データを取得
+                const orderedResponse = await fetch(currentSettings.spreadsheetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=getOrdered&data=${encodeURIComponent(JSON.stringify({}))}`
+                });
+                
+                if (!orderedResponse.ok) {
+                    throw new Error(`発注中データの取得に失敗: ${orderedResponse.status}`);
+                }
+                
+                const orderedData = await orderedResponse.json();
+                
+                // 発注停止中データを取得
+                const onHoldResponse = await fetch(currentSettings.spreadsheetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=getOnHold&data=${encodeURIComponent(JSON.stringify({}))}`
+                });
+                
+                if (!onHoldResponse.ok) {
+                    throw new Error(`発注停止中データの取得に失敗: ${onHoldResponse.status}`);
+                }
+                
+                const onHoldData = await onHoldResponse.json();
+                
+                // データを変換
+                orderedItems = orderedData.map(item => ({
+                    id: item['商品コード'] || item.id,
+                    name: item['商品名'] || item.name,
+                    category: item['店舗'] || item.category,
+                    currentStock: parseInt(item['現在在庫']) || 0,
+                    orderedQuantity: parseInt(item['発注数']) || 0,
+                    orderDate: item['発注日'] || '',
+                    expectedDelivery: item['予定納期'] || '',
+                    status: 'ordered',
+                    orderStatus: item['ステータス'] || '発注中',
+                    supplier: '同期取得',
+                    isManuallyAdded: true
+                }));
+                
+                onHoldItems = onHoldData.map(item => ({
+                    id: item['商品コード'] || item.id,
+                    name: item['商品名'] || item.name,
+                    category: item['店舗'] || item.category,
+                    currentStock: parseInt(item['現在在庫']) || 0,
+                    reorderPoint: parseInt(item['発注点']) || 0,
+                    onHoldDate: item['停止日'] || '',
+                    status: 'on-hold',
+                    supplier: '同期取得',
+                    reason: item['理由'] || '同期取得'
+                }));
+                
+                // 画面を更新
+                updateSummaryCards();
+                updateTables();
+                saveToLocalStorage();
+                
+                showSyncIndicator('✅ 同期完了！', 'success');
+                showNotification(`スプレッドシートから同期しました（発注中: ${orderedItems.length}件、発注停止中: ${onHoldItems.length}件）`);
+                
+            } catch (error) {
+                console.error('Sync from spreadsheet failed:', error);
+                showSyncIndicator('❌ 同期エラー：' + error.message, 'error');
+                showNotification('スプレッドシートからの同期に失敗しました: ' + error.message, 'error');
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        async function syncToSpreadsheet() {
+            if (!currentSettings.spreadsheetUrl) {
+                showNotification('スプレッドシートURLが設定されていません', 'error');
+                return;
+            }
+            
+            if (isSyncing) {
+                showNotification('既に同期中です', 'error');
+                return;
+            }
+            
+            isSyncing = true;
+            showSyncIndicator('📤 スプレッドシートに保存中...', 'info');
+            
+            try {
+                let successCount = 0;
+                
+                // 発注中データを送信
+                for (const item of orderedItems) {
+                    const data = {
+                        商品コード: item.id,
+                        商品名: item.name,
+                        店舗: item.category,
+                        現在在庫: item.currentStock,
+                        発注数: item.orderedQuantity,
+                        発注日: item.orderDate,
+                        予定納期: item.expectedDelivery,
+                        ステータス: item.orderStatus || '発注中'
+                    };
+                    
+                    const response = await fetch(currentSettings.spreadsheetUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=addOrdered&data=${encodeURIComponent(JSON.stringify(data))}`
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                }
+                
+                // 発注停止中データを送信
+                for (const item of onHoldItems) {
+                    const data = {
+                        商品コード: item.id,
+                        商品名: item.name,
+                        店舗: item.category,
+                        現在在庫: item.currentStock,
+                        発注点: item.reorderPoint,
+                        停止日: item.onHoldDate,
+                        理由: item.reason || '手動設定'
+                    };
+                    
+                    const response = await fetch(currentSettings.spreadsheetUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=addOnHold&data=${encodeURIComponent(JSON.stringify(data))}`
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                }
+                
+                showSyncIndicator('✅ 保存完了！', 'success');
+                showNotification(`スプレッドシートに保存しました（${successCount}件）`);
+                
+            } catch (error) {
+                console.error('Sync to spreadsheet failed:', error);
+                showSyncIndicator('❌ 保存エラー：' + error.message, 'error');
+                showNotification('スプレッドシートへの保存に失敗しました: ' + error.message, 'error');
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        async function syncWithSpreadsheet() {
+            if (!currentSettings.spreadsheetUrl) {
+                showNotification('スプレッドシートURLが設定されていません。設定画面で設定してください。', 'error');
+                return;
+            }
+            
+            if (confirm('スプレッドシートと同期しますか？\n\n📥 スプレッドシートからデータを取得し、\n📤 現在のデータもスプレッドシートに保存します。')) {
+                await syncFromSpreadsheet();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await syncToSpreadsheet();
+            }
+        }
+
+        async function syncItemToSpreadsheet(item, action) {
+            if (!currentSettings.syncOnAction || !currentSettings.spreadsheetUrl) {
+                return;
+            }
+            
+            try {
+                let data;
+                let apiAction;
+                
+                if (action === 'addOrdered') {
+                    data = {
+                        商品コード: item.id,
+                        商品名: item.name,
+                        店舗: item.category,
+                        現在在庫: item.currentStock,
+                        発注数: item.orderedQuantity,
+                        発注日: item.orderDate,
+                        予定納期: item.expectedDelivery,
+                        ステータス: item.orderStatus || '発注中'
+                    };
+                    apiAction = 'addOrdered';
+                } else if (action === 'addOnHold') {
+                    data = {
+                        商品コード: item.id,
+                        商品名: item.name,
+                        店舗: item.category,
+                        現在在庫: item.currentStock,
+                        発注点: item.reorderPoint,
+                        停止日: item.onHoldDate,
+                        理由: item.reason || '手動設定'
+                    };
+                    apiAction = 'addOnHold';
+                } else if (action === 'deleteOrdered') {
+                    data = { productCode: item.id };
+                    apiAction = 'deleteOrdered';
+                } else if (action === 'deleteOnHold') {
+                    data = { productCode: item.id };
+                    apiAction = 'deleteOnHold';
+                }
+                
+                const response = await fetch(currentSettings.spreadsheetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=${apiAction}&data=${encodeURIComponent(JSON.stringify(data))}`
+                });
+                
+                if (response.ok) {
+                    console.log(`Synced ${action} for ${item.id}`);
+                } else {
+                    console.error(`Failed to sync ${action} for ${item.id}`);
+                }
+            } catch (error) {
+                console.error('Sync item failed:', error);
             }
         }
 
