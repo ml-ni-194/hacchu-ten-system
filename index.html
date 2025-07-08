@@ -420,11 +420,31 @@
 
         .status-editable {
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            position: relative;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #cce5ff;
+            color: #0056b3;
+            border: 1px dashed #0056b3;
         }
 
         .status-editable:hover {
-            background-color: #f8f9fa;
+            background-color: #b3d9ff;
+            border-color: #004085;
+        }
+
+        .status-editable::after {
+            content: "✏️";
+            position: absolute;
+            right: -15px;
+            top: 2px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        .status-editable:hover::after {
+            opacity: 1;
         }
 
         .order-date-column {
@@ -672,6 +692,99 @@
             gap: 10px;
         }
 
+        /* 手動追加モーダル */
+        .add-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .add-modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 10px;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .add-modal-header {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            margin: 0;
+        }
+
+        .add-modal-body {
+            padding: 20px;
+        }
+
+        .add-form-group {
+            margin-bottom: 15px;
+        }
+
+        .add-form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .add-form-group input,
+        .add-form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .add-form-group input:focus,
+        .add-form-group select:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .add-form-group small {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .add-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            gap: 10px;
+        }
+
+        .btn-add {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .btn-add:hover {
+            background: #219a52;
+        }
+
         @media (max-width: 768px) {
             .upload-section {
                 grid-template-columns: 1fr;
@@ -834,6 +947,7 @@
                         <span class="selected-count" id="orderedSelectedCount">0件選択</span>
                     </div>
                     <div class="action-controls">
+                        <button class="btn btn-add btn-sm" onclick="showAddOrderModal()">➕ 手動追加</button>
                         <button class="btn btn-success btn-sm" onclick="completeSelectedOrders()" id="completeOrdersBtn" disabled>選択商品を入荷完了</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteSelectedOrders()" id="deleteOrdersBtn" disabled>選択商品を削除</button>
                     </div>
@@ -939,6 +1053,50 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手動追加モーダル -->
+    <div id="addOrderModal" class="add-modal">
+        <div class="add-modal-content">
+            <div class="add-modal-header">
+                <h2>➕ 発注商品を手動追加</h2>
+                <span class="close" onclick="closeAddOrderModal()" style="position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer;">&times;</span>
+            </div>
+            <div class="add-modal-body">
+                <div class="add-form-group">
+                    <label for="addProductCode">商品コード <span class="required">*</span></label>
+                    <input type="text" id="addProductCode" placeholder="商品コードを入力してください" required>
+                    <small>必須項目です</small>
+                </div>
+                <div class="add-form-group">
+                    <label for="addProductName">商品名</label>
+                    <input type="text" id="addProductName" placeholder="商品名を入力してください（任意）">
+                    <small>空欄の場合は「手動追加商品」として登録されます</small>
+                </div>
+                <div class="add-form-group">
+                    <label for="addStore">店舗</label>
+                    <select id="addStore">
+                        <option value="">店舗を選択してください</option>
+                    </select>
+                </div>
+                <div class="add-form-group">
+                    <label for="addOrderQuantity">発注数</label>
+                    <input type="number" id="addOrderQuantity" placeholder="発注数を入力してください" min="1" value="1">
+                </div>
+                <div class="add-form-group">
+                    <label for="addExpectedDelivery">予定納期</label>
+                    <input type="date" id="addExpectedDelivery">
+                </div>
+                <div class="add-form-group">
+                    <label for="addOrderStatus">ステータス</label>
+                    <input type="text" id="addOrderStatus" placeholder="ステータスを入力してください" value="発注中">
+                </div>
+            </div>
+            <div class="add-modal-footer">
+                <button class="btn" onclick="closeAddOrderModal()">キャンセル</button>
+                <button class="btn btn-success" onclick="addOrderManually()">追加</button>
             </div>
         </div>
     </div>
@@ -1259,6 +1417,7 @@
                 }
             });
 
+            // 発注点計算時に手動追加アイテムを除外して重複チェック
             const calculatedData = uploadedInventoryData.map(item => {
                 const productId = item.productId;
                 const currentStock = parseInt(item.currentStock) || 0;
@@ -1266,8 +1425,10 @@
                 const dailyAverage = totalSales / analysisDays;
                 const reorderPoint = Math.ceil(dailyAverage * reorderCalculationDays);
                 
-                // 発注中と発注停止中のアイテムをチェック
-                const isOrdered = orderedItems.some(orderedItem => orderedItem.id === productId);
+                // 発注中と発注停止中のアイテムをチェック（手動追加は除外）
+                const isOrdered = orderedItems.some(orderedItem => 
+                    orderedItem.id === productId && !orderedItem.isManuallyAdded
+                );
                 const isOnHold = onHoldItems.some(onHoldItem => onHoldItem.id === productId);
                 
                 // 発注中または発注停止中の場合は発注不要とする
@@ -1301,6 +1462,14 @@
             });
 
             inventoryData = calculatedData;
+            
+            // 発注中と発注停止中のアイテムから、新しいデータに存在しないものを削除
+            // ただし、手動追加アイテムは保持する
+            const currentProductIds = new Set(calculatedData.map(item => item.id));
+            orderedItems = orderedItems.filter(item => 
+                currentProductIds.has(item.id) || item.isManuallyAdded
+            );
+            onHoldItems = onHoldItems.filter(item => currentProductIds.has(item.id));
             
             updateSummaryCards();
             updateTables();
@@ -1427,7 +1596,11 @@
                     <td class="quantity-column">${item.orderedQuantity}</td>
                     <td class="order-date-column">${item.orderDate}</td>
                     <td class="delivery-date-column">${item.expectedDelivery}</td>
-                    <td class="status-column"><span class="status-badge status-ordered">発注中</span></td>
+                    <td class="status-column">
+                        <span class="status-badge status-editable" onclick="editOrderStatus('${item.id}', this)" title="クリックで編集">
+                            ${item.orderStatus || '発注中'}
+                        </span>
+                    </td>
                     <td class="action-column">
                         <button class="btn btn-success btn-sm" onclick="completeOrder('${item.id}')">完了</button>
                         <button class="btn btn-danger btn-sm" onclick="cancelOrder('${item.id}')">削除</button>
@@ -1898,6 +2071,252 @@ P003,マウス 無線,名古屋店,10`;
             document.getElementById('deleteOnHoldBtn').disabled = selectedOnHoldItems.size === 0;
         }
 
+        // 手動追加モーダル機能
+        function showAddOrderModal() {
+            // 店舗オプションを設定
+            populateStoreOptions();
+            
+            // 予定納期をデフォルト値で設定（7日後）
+            const deliveryDate = new Date();
+            deliveryDate.setDate(deliveryDate.getDate() + 7);
+            document.getElementById('addExpectedDelivery').value = deliveryDate.toISOString().split('T')[0];
+            
+            // モーダルを表示
+            document.getElementById('addOrderModal').style.display = 'block';
+            
+            // 商品コードフィールドにフォーカス
+            setTimeout(() => {
+                document.getElementById('addProductCode').focus();
+            }, 100);
+        }
+
+        function closeAddOrderModal() {
+            document.getElementById('addOrderModal').style.display = 'none';
+            
+            // フォームをリセット
+            document.getElementById('addProductCode').value = '';
+            document.getElementById('addProductName').value = '';
+            document.getElementById('addStore').value = '';
+            document.getElementById('addOrderQuantity').value = '1';
+            document.getElementById('addOrderStatus').value = '発注中';
+        }
+
+        function populateStoreOptions() {
+            const storeSelect = document.getElementById('addStore');
+            const stores = [...new Set(inventoryData.map(item => item.category))];
+            
+            storeSelect.innerHTML = '<option value="">店舗を選択してください</option>' + 
+                stores.map(store => `<option value="${store}">${store}</option>`).join('');
+        }
+
+        function addOrderManually() {
+            const productCode = document.getElementById('addProductCode').value.trim();
+            const productName = document.getElementById('addProductName').value.trim() || '手動追加商品';
+            const store = document.getElementById('addStore').value || '未設定';
+            const orderQuantity = parseInt(document.getElementById('addOrderQuantity').value) || 1;
+            const expectedDelivery = document.getElementById('addExpectedDelivery').value;
+            const orderStatus = document.getElementById('addOrderStatus').value.trim() || '発注中';
+            
+            // 商品コードは必須
+            if (!productCode) {
+                alert('商品コードは必須項目です。');
+                document.getElementById('addProductCode').focus();
+                return;
+            }
+            
+            // 重複チェック
+            const isDuplicate = orderedItems.some(item => item.id === productCode);
+            if (isDuplicate) {
+                alert('この商品コードは既に発注中リストに存在します。');
+                document.getElementById('addProductCode').focus();
+                return;
+            }
+            
+            // 発注アイテムを追加
+            const today = new Date();
+            const newOrderItem = {
+                id: productCode,
+                name: productName,
+                category: store,
+                currentStock: 0, // 手動追加のため不明
+                orderedQuantity: orderQuantity,
+                orderDate: today.toISOString().split('T')[0],
+                expectedDelivery: expectedDelivery || today.toISOString().split('T')[0],
+                status: 'ordered',
+                orderStatus: orderStatus,
+                supplier: '手動追加',
+                isManuallyAdded: true // 手動追加フラグ
+            };
+            
+            orderedItems.push(newOrderItem);
+            
+            // データを保存
+            saveToLocalStorage();
+            
+            // 画面を更新
+            updateSummaryCards();
+            updateTables();
+            
+            // モーダルを閉じる
+            closeAddOrderModal();
+            
+            // 通知を表示
+            showNotification(`商品コード「${productCode}」を発注中に追加しました`);
+        }
+
+        // 手動追加モーダル機能
+        function showAddOrderModal() {
+            // 店舗オプションを設定
+            populateStoreOptions();
+            
+            // 予定納期をデフォルト値で設定（7日後）
+            const deliveryDate = new Date();
+            deliveryDate.setDate(deliveryDate.getDate() + 7);
+            document.getElementById('addExpectedDelivery').value = deliveryDate.toISOString().split('T')[0];
+            
+            // モーダルを表示
+            document.getElementById('addOrderModal').style.display = 'block';
+            
+            // 商品コードフィールドにフォーカス
+            setTimeout(() => {
+                document.getElementById('addProductCode').focus();
+            }, 100);
+        }
+
+        function closeAddOrderModal() {
+            document.getElementById('addOrderModal').style.display = 'none';
+            
+            // フォームをリセット
+            document.getElementById('addProductCode').value = '';
+            document.getElementById('addProductName').value = '';
+            document.getElementById('addStore').value = '';
+            document.getElementById('addOrderQuantity').value = '1';
+            document.getElementById('addOrderStatus').value = '発注中';
+        }
+
+        function populateStoreOptions() {
+            const storeSelect = document.getElementById('addStore');
+            const stores = [...new Set(inventoryData.map(item => item.category))];
+            
+            storeSelect.innerHTML = '<option value="">店舗を選択してください</option>' + 
+                stores.map(store => `<option value="${store}">${store}</option>`).join('');
+        }
+
+        function addOrderManually() {
+            const productCode = document.getElementById('addProductCode').value.trim();
+            const productName = document.getElementById('addProductName').value.trim() || '手動追加商品';
+            const store = document.getElementById('addStore').value || '未設定';
+            const orderQuantity = parseInt(document.getElementById('addOrderQuantity').value) || 1;
+            const expectedDelivery = document.getElementById('addExpectedDelivery').value;
+            const orderStatus = document.getElementById('addOrderStatus').value.trim() || '発注中';
+            
+            // 商品コードは必須
+            if (!productCode) {
+                alert('商品コードは必須項目です。');
+                document.getElementById('addProductCode').focus();
+                return;
+            }
+            
+            // 重複チェック
+            const isDuplicate = orderedItems.some(item => item.id === productCode);
+            if (isDuplicate) {
+                alert('この商品コードは既に発注中リストに存在します。');
+                document.getElementById('addProductCode').focus();
+                return;
+            }
+            
+            // 発注アイテムを追加
+            const today = new Date();
+            const newOrderItem = {
+                id: productCode,
+                name: productName,
+                category: store,
+                currentStock: 0, // 手動追加のため不明
+                orderedQuantity: orderQuantity,
+                orderDate: today.toISOString().split('T')[0],
+                expectedDelivery: expectedDelivery || today.toISOString().split('T')[0],
+                status: 'ordered',
+                orderStatus: orderStatus,
+                supplier: '手動追加',
+                isManuallyAdded: true // 手動追加フラグ
+            };
+            
+            orderedItems.push(newOrderItem);
+            
+            // データを保存
+            saveToLocalStorage();
+            
+            // 画面を更新
+            updateSummaryCards();
+            updateTables();
+            
+            // モーダルを閉じる
+            closeAddOrderModal();
+            
+            // 通知を表示
+            showNotification(`商品コード「${productCode}」を発注中に追加しました`);
+        }
+
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const addModal = document.getElementById('addOrderModal');
+            if (event.target == addModal) {
+                closeAddOrderModal();
+            }
+        };
+
+        // 発注ステータス編集機能
+        // 発注ステータス編集機能
+        function editOrderStatus(itemId, element) {
+            const currentStatus = element.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'status-input';
+            input.value = currentStatus;
+            input.maxLength = 10;
+            
+            // 入力フィールドに置き換え
+            element.innerHTML = '';
+            element.appendChild(input);
+            input.focus();
+            input.select();
+            
+            // エンターキーまたはフォーカスアウトで保存
+            const saveStatus = () => {
+                const newStatus = input.value.trim();
+                if (newStatus) {
+                    // データを更新
+                    const orderItem = orderedItems.find(item => item.id === itemId);
+                    if (orderItem) {
+                        orderItem.orderStatus = newStatus;
+                        saveToLocalStorage();
+                        showNotification(`ステータスを "${newStatus}" に更新しました`);
+                    }
+                    
+                    // 表示を元に戻す
+                    element.innerHTML = `<span class="status-badge status-editable" onclick="editOrderStatus('${itemId}', this)" title="クリックで編集">${newStatus}</span>`;
+                } else {
+                    // 空の場合は元に戻す
+                    element.innerHTML = `<span class="status-badge status-editable" onclick="editOrderStatus('${itemId}', this)" title="クリックで編集">${currentStatus}</span>`;
+                }
+            };
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveStatus();
+                }
+            });
+            
+            input.addEventListener('blur', saveStatus);
+            
+            // ESCキーでキャンセル
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    element.innerHTML = `<span class="status-badge status-editable" onclick="editOrderStatus('${itemId}', this)" title="クリックで編集">${currentStatus}</span>`;
+                }
+            });
+        }
+
         // 発注管理機能
         function markSingleAsOrdered(itemId) {
             const item = inventoryData.find(i => i.id === itemId);
@@ -1917,6 +2336,7 @@ P003,マウス 無線,名古屋店,10`;
                         orderDate: today.toISOString().split('T')[0],
                         expectedDelivery: deliveryDate.toISOString().split('T')[0],
                         status: 'ordered',
+                        orderStatus: '発注中',
                         supplier: item.supplier
                     });
                     
@@ -1977,6 +2397,7 @@ P003,マウス 無線,名古屋店,10`;
                         orderDate: today.toISOString().split('T')[0],
                         expectedDelivery: deliveryDate.toISOString().split('T')[0],
                         status: 'ordered',
+                        orderStatus: '発注中',
                         supplier: item.supplier
                     });
                 });
