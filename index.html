@@ -380,9 +380,51 @@
             text-align: center;
         }
 
-        .status-column {
+        .status-input {
             width: 80px;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+            background: white;
+        }
+
+        .status-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .status-editable {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .status-column {
+            width: 100px;
             text-align: center;
+        }
+
+        .status-input {
+            width: 80px;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+            background: white;
+        }
+
+        .status-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .status-editable {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .status-editable:hover {
+            background-color: #f8f9fa;
         }
 
         .order-date-column {
@@ -1223,8 +1265,14 @@
                 const totalSales = salesMap.get(productId) || 0;
                 const dailyAverage = totalSales / analysisDays;
                 const reorderPoint = Math.ceil(dailyAverage * reorderCalculationDays);
-                const needsReorder = currentStock < reorderPoint;
-                const shortage = Math.max(0, reorderPoint - currentStock);
+                
+                // 発注中と発注停止中のアイテムをチェック
+                const isOrdered = orderedItems.some(orderedItem => orderedItem.id === productId);
+                const isOnHold = onHoldItems.some(onHoldItem => onHoldItem.id === productId);
+                
+                // 発注中または発注停止中の場合は発注不要とする
+                const needsReorder = !isOrdered && !isOnHold && currentStock < reorderPoint;
+                const shortage = needsReorder ? Math.max(0, reorderPoint - currentStock) : 0;
                 
                 let status = 'normal';
                 if (needsReorder) {
