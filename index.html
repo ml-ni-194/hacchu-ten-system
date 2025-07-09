@@ -1076,8 +1076,8 @@
                         <span class="selected-count" id="orderedSelectedCount">0件選択</span>
                     </div>
                     <div class="action-controls">
-                        <button class="btn btn-success btn-sm" onclick="showAddOrderModal()">➕ 手動追加</button>
-                        <button class="btn btn-success btn-sm" onclick="showBulkAddModal()">📋 一括追加</button>
+                        <button class="btn btn-success btn-sm" id="addOrderBtn">➕ 手動追加</button>
+                        <button class="btn btn-success btn-sm" id="bulkAddBtn">📋 一括追加</button>
                         <button class="btn btn-success btn-sm" onclick="completeSelectedOrders()" id="completeOrdersBtn" disabled>選択商品を入荷完了</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteSelectedOrders()" id="deleteOrdersBtn" disabled>選択商品を削除</button>
                     </div>
@@ -1228,6 +1228,11 @@
                 updateSummaryCards();
                 updateCategoryFilter();
                 
+                // 少し遅延させてモーダルイベントを初期化
+                setTimeout(() => {
+                    initializeModalEvents();
+                }, 100);
+                
                 // スプレッドシート連携の準備完了を通知
                 setTimeout(() => {
                     showNotification('システムが起動しました。データはローカルに保存されます。');
@@ -1236,6 +1241,98 @@
                 console.error('Initialization error:', error);
             }
         });
+
+        // モーダルイベントの初期化
+        function initializeModalEvents() {
+            console.log('モーダルイベントの初期化を開始');
+            
+            // 手動追加ボタン
+            const addBtn = document.getElementById('addOrderBtn');
+            console.log('手動追加ボタン:', addBtn);
+            if (addBtn) {
+                addBtn.addEventListener('click', function() {
+                    console.log('手動追加ボタンがクリックされました');
+                    showAddOrderModal();
+                });
+                console.log('手動追加ボタンにイベントリスナーを設定しました');
+            } else {
+                console.error('手動追加ボタンが見つかりません');
+            }
+            
+            // 一括追加ボタン
+            const bulkBtn = document.getElementById('bulkAddBtn');
+            console.log('一括追加ボタン:', bulkBtn);
+            if (bulkBtn) {
+                bulkBtn.addEventListener('click', function() {
+                    console.log('一括追加ボタンがクリックされました');
+                    showBulkAddModal();
+                });
+                console.log('一括追加ボタンにイベントリスナーを設定しました');
+            } else {
+                console.error('一括追加ボタンが見つかりません');
+            }
+            
+            // モーダルの閉じるボタン
+            const closeAddBtn = document.getElementById('closeAddModal');
+            if (closeAddBtn) {
+                closeAddBtn.addEventListener('click', closeAddOrderModal);
+            }
+            
+            const closeBulkBtn = document.getElementById('closeBulkModal');
+            if (closeBulkBtn) {
+                closeBulkBtn.addEventListener('click', closeBulkAddModal);
+            }
+            
+            // 手動追加のボタン
+            const cancelAddBtn = document.getElementById('cancelAddBtn');
+            if (cancelAddBtn) {
+                cancelAddBtn.addEventListener('click', closeAddOrderModal);
+            }
+            
+            const confirmAddBtn = document.getElementById('confirmAddBtn');
+            if (confirmAddBtn) {
+                confirmAddBtn.addEventListener('click', addOrderManually);
+            }
+            
+            // 一括追加のボタン
+            const cancelBulkBtn = document.getElementById('cancelBulkBtn');
+            if (cancelBulkBtn) {
+                cancelBulkBtn.addEventListener('click', closeBulkAddModal);
+            }
+            
+            const confirmBulkBtn = document.getElementById('confirmBulkBtn');
+            if (confirmBulkBtn) {
+                confirmBulkBtn.addEventListener('click', addOrdersBulk);
+            }
+            
+            // 一括追加のテキストエリア
+            const bulkTextarea = document.getElementById('bulkProductCodes');
+            if (bulkTextarea) {
+                bulkTextarea.addEventListener('input', updateBulkPreview);
+            }
+            
+            // モーダル外クリックで閉じる
+            const addModal = document.getElementById('addOrderModal');
+            const bulkModal = document.getElementById('bulkAddModal');
+            
+            if (addModal) {
+                addModal.addEventListener('click', function(event) {
+                    if (event.target === addModal) {
+                        closeAddOrderModal();
+                    }
+                });
+            }
+            
+            if (bulkModal) {
+                bulkModal.addEventListener('click', function(event) {
+                    if (event.target === bulkModal) {
+                        closeBulkAddModal();
+                    }
+                });
+            }
+            
+            console.log('モーダルイベントの初期化が完了しました');
+        }
 
         // タブイベントの初期化
         function initializeTabEvents() {
@@ -2543,7 +2640,7 @@ P003,マウス 無線,名古屋店,10`;
                     preview.style.display = 'none';
                 }
                 
-                const addBtn = document.getElementById('bulkAddBtn');
+                const addBtn = document.getElementById('confirmBulkBtn');
                 if (addBtn) {
                     addBtn.disabled = true;
                 }
@@ -2557,7 +2654,7 @@ P003,マウス 無線,名古屋店,10`;
                 const textarea = document.getElementById('bulkProductCodes');
                 const preview = document.getElementById('bulkPreview');
                 const previewItems = document.getElementById('bulkPreviewItems');
-                const addBtn = document.getElementById('bulkAddBtn');
+                const addBtn = document.getElementById('confirmBulkBtn');
                 
                 if (!textarea || !preview || !previewItems || !addBtn) {
                     return;
